@@ -22,6 +22,8 @@ const (
 
 	DELIMITER byte = '\n'
 	QUIT_SIGN      = "quit!"
+
+	DEBUG = true
 )
 
 // func Read(conn net.Conn, delim byte) (string, error) {
@@ -93,8 +95,10 @@ func startServer() {
 
 func init() {
 
-	log.SetFlags(0)
-	log.SetOutput(ioutil.Discard)
+	if !DEBUG {
+		log.SetFlags(0)
+		log.SetOutput(ioutil.Discard)
+	}
 
 }
 

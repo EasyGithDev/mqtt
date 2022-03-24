@@ -159,6 +159,20 @@ func (mp *MqttPacket) Encode() []byte {
 	return mqttBuffer.Bytes()
 }
 
+func (mp *MqttPacket) Decode(buffer []byte) {
+	mp.Control = buffer[0]
+	size := mp.RemaingLengthDecode(buffer[1:2])
+
+	log.Printf("Size of buffer %d\n", size)
+}
+
+func (mp *MqttPacket) GetPacket(buffer []byte) []byte {
+	mp.Control = buffer[0]
+	size := mp.RemaingLengthDecode(buffer[1:2])
+
+	return buffer[:size+2]
+}
+
 func (mp *MqttPacket) RemaingLengthEncode(x int) []byte {
 
 	var buffer []byte = make([]byte, 0)

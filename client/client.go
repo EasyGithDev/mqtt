@@ -2,6 +2,7 @@ package client
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net"
 
@@ -34,7 +35,7 @@ func (mc *MqttClient) Connect(idClient string) (bool, error) {
 
 	buffer := mp.Encode()
 
-	mc.ShowPacket(buffer)
+	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
 
 	n, err := (*mc.conn).Write(buffer)
 	if err != nil {
@@ -50,7 +51,9 @@ func (mc *MqttClient) Connect(idClient string) (bool, error) {
 		return false, err
 	}
 
-	mc.ShowPacket(response)
+	myPacket := mp.GetPacket(response)
+
+	log.Printf("Packet: %s\n", mc.ShowPacket(myPacket))
 
 	if response[0] != packet.CONNACK {
 
@@ -110,10 +113,12 @@ func (mp *MqttClient) Read() ([]byte, error) {
 	return buffer, nil
 }
 
-func (mp *MqttClient) ShowPacket(buffer []byte) {
+func (mp *MqttClient) ShowPacket(buffer []byte) string {
+	str := ""
 	for i := 0; i < len(buffer); i++ {
-		log.Printf("0x%X ", buffer[i])
+		str += fmt.Sprintf("0x%X ", buffer[i])
 	}
-	log.Printf("\n")
+	str += "\n"
 
+	return str
 }
