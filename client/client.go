@@ -9,6 +9,11 @@ import (
 	"github.com/easygithdev/mqtt/packet"
 )
 
+type MqttConnectOptions struct {
+	Login    string
+	Password string
+}
+
 type MqttClient struct {
 	conn *net.Conn
 }
@@ -21,7 +26,7 @@ func (mc *MqttClient) SetConn(conn *net.Conn) {
 	mc.conn = conn
 }
 
-func (mc *MqttClient) Connect(idClient string) (bool, error) {
+func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (bool, error) {
 
 	mp := packet.NewMqttPacket()
 	mp.Control = packet.CONNECT
@@ -30,6 +35,11 @@ func (mc *MqttClient) Connect(idClient string) (bool, error) {
 	mp.ConnectFlag = 0x2
 	mp.KeepAlive = 60
 	mp.Payload = idClient
+
+	if options != nil {
+		mp.Control = mp.Control & (0x01 << 7) & (0x01 << 6)
+		mp.Payload += options.Login + options.Password
+	}
 
 	log.Printf("Sending command: 0x%x \n", mp.Control)
 
@@ -55,9 +65,9 @@ func (mc *MqttClient) Connect(idClient string) (bool, error) {
 
 	log.Printf("Packet: %s\n", mc.ShowPacket(myPacket))
 
-	if response[0] != packet.CONNACK {
+	if response[0] == packet.CONNACK {
 
-		switch response[1] {
+		switch response[3] {
 		case packet.CONNECT_REFUSED_1:
 			return false, errors.New("connection Refused, unacceptable protocol version")
 		case packet.CONNECT_REFUSED_2:

@@ -68,6 +68,7 @@ type MqttPacket struct {
 	Length uint16
 
 	// Payload
+	// Payload []byte
 	Payload string
 }
 
@@ -113,7 +114,7 @@ func (mp *MqttPacket) Encode() []byte {
 	if mp.Length != 0 {
 		payloadLength = 2 + int(mp.Length)
 	}
-	mp.RemainingLength = mp.RemaingLengthEncode(bodyLength + payloadLength)
+	mp.RemainingLength = mp.LengthEncode(bodyLength + payloadLength)
 
 	log.Printf("Protocol length Hexadecimal: Ox%X Dec:%d\n", mp.ProtocolLength, mp.ProtocolLength)
 	log.Printf("Payload length Hexadecimal: Ox%X Dec:%d\n", mp.Length, mp.Length)
@@ -173,7 +174,23 @@ func (mp *MqttPacket) GetPacket(buffer []byte) []byte {
 	return buffer[:size+2]
 }
 
-func (mp *MqttPacket) RemaingLengthEncode(x int) []byte {
+func (mp *MqttPacket) AddToPayload(str string) {
+	//var buffer bytes.Buffer
+	// buffer.Write(mp.Payload)
+	// buffer.Write(mp.StringEncode(str))
+	// mp.Payload = buffer.Bytes()
+}
+
+func (mp *MqttPacket) StringEncode(str string) []byte {
+	size := mp.LengthEncode(len(str))
+	var buffer bytes.Buffer
+	buffer.Write(size)
+	buffer.WriteString(str)
+
+	return buffer.Bytes()
+}
+
+func (mp *MqttPacket) LengthEncode(x int) []byte {
 
 	var buffer []byte = make([]byte, 0)
 	var encodedByte int = 0

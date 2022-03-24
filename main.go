@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -18,6 +16,7 @@ const (
 
 	connHost = "test.mosquitto.org"
 	connPort = "1883"
+	// connPort = "1884"
 	connType = "tcp"
 
 	DELIMITER byte = '\n'
@@ -25,73 +24,6 @@ const (
 
 	DEBUG = true
 )
-
-// func Read(conn net.Conn, delim byte) (string, error) {
-// 	reader := bufio.NewReader(conn)
-// 	var buffer bytes.Buffer
-// 	for {
-// 		ba, isPrefix, err := reader.ReadLine()
-// 		if err != nil {
-// 			if err == io.EOF {
-// 				break
-// 			}
-// 			return "", err
-// 		}
-// 		buffer.Write(ba)
-// 		if !isPrefix {
-// 			break
-// 		}
-// 	}
-// 	return buffer.String(), nil
-// }
-
-func Write(conn net.Conn, content string) (int, error) {
-	writer := bufio.NewWriter(conn)
-	number, err := writer.WriteString(content)
-	if err == nil {
-		err = writer.Flush()
-	}
-	return number, err
-}
-
-func handleConnection(conn net.Conn) {
-	buffer, err := bufio.NewReader(conn).ReadBytes('\n')
-
-	if err != nil {
-		fmt.Println("Client left.")
-		conn.Close()
-		return
-	}
-
-	log.Println("Client message:", string(buffer[:len(buffer)-1]))
-
-	conn.Write(buffer)
-
-	handleConnection(conn)
-}
-
-func startServer() {
-	fmt.Println("Starting " + connType + " server on " + connHost + ":" + connPort)
-	l, err := net.Listen(connType, connHost+":"+connPort)
-	if err != nil {
-		fmt.Println("Error listening:", err.Error())
-		os.Exit(1)
-	}
-	defer l.Close()
-
-	for {
-
-		c, err := l.Accept()
-		if err != nil {
-			fmt.Println("Error connecting:", err.Error())
-			return
-		}
-		fmt.Println("Client connected.")
-		fmt.Println("Client " + c.RemoteAddr().String() + " connected.")
-
-		handleConnection(c)
-	}
-}
 
 func init() {
 
@@ -113,14 +45,13 @@ func main() {
 	log.Print("Connecting to " + connType + " server " + connHost + ":" + connPort)
 
 	// Connect
-	client := client.NewMqttClient()
+	mc := client.NewMqttClient()
 
-	// Adding connection to client
-	client.SetConn(&conn)
-
-	// Read continue
-
-	resp, err := client.Connect("golang-1")
+	// Adding connection to mc
+	mc.SetConn(&conn)
+	options := &client.MqttConnectOptions{Login: "rw", Password: "readwrite"}
+	options = nil
+	resp, err := mc.Connect("golang.test-1", options)
 
 	if err != nil {
 		log.Printf("Connect Error: %s\n", err)
@@ -130,26 +61,14 @@ func main() {
 		log.Printf("Connection established: \n")
 	}
 
-	resp, err = client.Disconnect()
+	// resp, err = mc.Disconnect()
 
-	if err != nil {
-		log.Printf("Connect Error: %s\n", err)
-	}
-
-	if resp {
-		log.Printf("Disconnected: \n")
-	}
-
-	// Disconnect
-	// clientBuffer = client.Disconnect()
-	// log.Printf("Client Buffer:  %x \n", clientBuffer)
-
-	// n, err := conn.Write(clientBuffer)
 	// if err != nil {
-	// 	log.Printf("Sender: Write Error: %s\n", err)
+	// 	log.Printf("Connect Error: %s\n", err)
 	// }
 
-	// log.Printf("Sender: Wrote %d byte(s)\n", n)
+	// if resp {
+	// 	log.Printf("Disconnected: \n")
+	// }
 
-	// myRead(client, conn)
 }
