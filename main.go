@@ -104,14 +104,6 @@ func myRead(client *client.MqttClient, conn net.Conn) {
 
 func main() {
 
-	// res := packet.NewMqttPacket().RemaingLengthEncode(321)
-
-	// println(res)
-
-	// os.Exit(0)
-
-	//go startServer()
-
 	fmt.Println("Connecting to " + connType + " server " + connHost + ":" + connPort)
 	conn, err := net.Dial(connType, connHost+":"+connPort)
 

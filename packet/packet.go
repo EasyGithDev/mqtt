@@ -37,9 +37,9 @@ type MqttPacket struct {
 	// Optionnal
 	PacketLength byte
 
-	// Remaining length
+	// Remaining length 1-4 bytes
 	// This is the total length without fixed header
-	RemainingLength byte
+	RemainingLength []byte
 
 	// Length of protocol name (expl MQTT4 -> 4)
 	ProtocolLength uint16
@@ -104,7 +104,7 @@ func (mp *MqttPacket) Encode() []byte {
 	if mp.Length != 0 {
 		payloadLength = 2 + int(mp.Length)
 	}
-	mp.RemainingLength = byte(mp.RemaingLengthEncode(bodyLength + payloadLength))
+	mp.RemainingLength = mp.RemaingLengthEncode(bodyLength + payloadLength)
 
 	fmt.Printf("Protocol length Hexadecimal: Ox%X Dec:%d\n", mp.ProtocolLength, mp.ProtocolLength)
 	fmt.Printf("Payload length Hexadecimal: Ox%X Dec:%d\n", mp.Length, mp.Length)
@@ -117,7 +117,7 @@ func (mp *MqttPacket) Encode() []byte {
 	mqttBuffer.WriteByte(mp.Control)
 
 	// 1-4 bytes
-	mqttBuffer.WriteByte(mp.RemainingLength)
+	mqttBuffer.Write(mp.RemainingLength)
 
 	var buf []byte
 
@@ -150,30 +150,59 @@ func (mp *MqttPacket) Encode() []byte {
 	return mqttBuffer.Bytes()
 }
 
-func (mp *MqttPacket) RemaingLengthEncode(x int) uint16 {
+func (mp *MqttPacket) RemaingLengthEncode(x int) []byte {
 
+	var buffer []byte = make([]byte, 0)
 	var encodedByte int = 0
 	for {
 		encodedByte = x % 128
-		fmt.Printf("byte :%d\n", byte(encodedByte))
+
 		x = x / 128
-		fmt.Printf("x :%d\n ", x)
+		// fmt.Printf("x :%d\n ", x)
 
 		if x > 0 {
 			encodedByte = encodedByte | 128
 		}
 
 		//output
-		fmt.Printf("%d ", byte(encodedByte))
+		buffer = append(buffer, byte(encodedByte))
+
+		// fmt.Println(buffer)
+
 		if x <= 0 {
 			break
 		}
 	}
-	return uint16(encodedByte)
+	return buffer
 }
 
-func (mp *MqttPacket) remaingLengthDecode(x int) uint16 {
-	return 0
+func (mp *MqttPacket) RemaingLengthDecode(x []byte) int {
+
+	var multiplier int = 1
+
+	var value int = 0
+
+	var encodedByte byte = 0
+
+	for i := 0; i < len(x); i++ {
+
+		encodedByte = x[i]
+
+		value += int(encodedByte&byte(127)) * multiplier
+
+		multiplier *= 128
+
+		// if (multiplier > 128*128*128)
+
+		//    throw Error(Malformed Remaining Length)
+
+		//  if  (encodedByte & 128) == 0 {
+		// 	 break
+		//  }
+
+	}
+
+	return value
 }
 
 func (mp *MqttPacket) computeLength(buffer []byte) uint16 {
