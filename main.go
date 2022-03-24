@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
@@ -90,29 +91,22 @@ func startServer() {
 	}
 }
 
-func myRead(client *client.MqttClient, conn net.Conn) {
+func init() {
 
-	message, err := client.Read()
-
-	if err != nil {
-		log.Printf("Sender: Read error: %s", err)
-	}
-
-	log.Print("Server relay:", message)
+	log.SetFlags(0)
+	log.SetOutput(ioutil.Discard)
 
 }
 
 func main() {
 
-	fmt.Println("Connecting to " + connType + " server " + connHost + ":" + connPort)
 	conn, err := net.Dial(connType, connHost+":"+connPort)
 
-	//conn, err := dialer.Dial(connType, connHost+":"+connPort)
-
 	if err != nil {
-		fmt.Println("Error connecting:", err.Error())
+		log.Print("Error connecting:", err.Error())
 		os.Exit(1)
 	}
+	log.Print("Connecting to " + connType + " server " + connHost + ":" + connPort)
 
 	// Connect
 	client := client.NewMqttClient()
@@ -130,6 +124,16 @@ func main() {
 
 	if resp {
 		log.Printf("Connection established: \n")
+	}
+
+	resp, err = client.Disconnect()
+
+	if err != nil {
+		log.Printf("Connect Error: %s\n", err)
+	}
+
+	if resp {
+		log.Printf("Disconnected: \n")
 	}
 
 	// Disconnect

@@ -3,7 +3,7 @@ package packet
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
+	"log"
 )
 
 //  MQTT Control Packet type
@@ -24,6 +24,15 @@ var DISCONNECT byte = 0xE0  // 224
 var AUTH byte = 0xF0        // 240
 
 //  MQTT Flags
+
+//  MQTT Connection responses
+
+var CONNECT_ACCEPTED byte = 0x00
+var CONNECT_REFUSED_1 byte = 0x01
+var CONNECT_REFUSED_2 byte = 0x02
+var CONNECT_REFUSED_3 byte = 0x03
+var CONNECT_REFUSED_4 byte = 0x04
+var CONNECT_REFUSED_5 byte = 0x05
 
 // control + length + protocol name + Protocol Level +Connect Flags + keep alive +Payload
 
@@ -106,9 +115,9 @@ func (mp *MqttPacket) Encode() []byte {
 	}
 	mp.RemainingLength = mp.RemaingLengthEncode(bodyLength + payloadLength)
 
-	fmt.Printf("Protocol length Hexadecimal: Ox%X Dec:%d\n", mp.ProtocolLength, mp.ProtocolLength)
-	fmt.Printf("Payload length Hexadecimal: Ox%X Dec:%d\n", mp.Length, mp.Length)
-	fmt.Printf("RemainingLength Dec: %d\n", mp.RemainingLength)
+	log.Printf("Protocol length Hexadecimal: Ox%X Dec:%d\n", mp.ProtocolLength, mp.ProtocolLength)
+	log.Printf("Payload length Hexadecimal: Ox%X Dec:%d\n", mp.Length, mp.Length)
+	log.Printf("RemainingLength Dec: %d\n", mp.RemainingLength)
 
 	// compute the fields
 
