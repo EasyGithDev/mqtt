@@ -14,7 +14,9 @@ const (
 	// connPort = "8080"
 	// connType = "tcp"
 
-	connHost = "test.mosquitto.org"
+	// connHost = "test.mosquitto.org"
+	connHost = "mqtt.eclipseprojects.io"
+
 	connPort = "1883"
 	// connPort = "1884"
 	connType = "tcp"
@@ -42,6 +44,8 @@ func main() {
 		log.Print("Error connecting:", err.Error())
 		os.Exit(1)
 	}
+	defer conn.Close()
+
 	log.Print("Connecting to " + connType + " server " + connHost + ":" + connPort)
 
 	// Connect
@@ -60,6 +64,8 @@ func main() {
 	if resp {
 		log.Printf("Connection established: \n")
 	}
+
+	mc.Publish("/supertest", "i like hello mamam")
 
 	// resp, err = mc.Disconnect()
 

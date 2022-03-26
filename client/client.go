@@ -35,10 +35,7 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 	mh.Control = header.CONNECT
 
 	mvh := variableheader.NewMqttVariableHeader()
-	mvh.ProtocolName = "MQTT"
-	mvh.ProtocolVersion = 4
-	mvh.ConnectFlag = variableheader.CONNECT_FLAG_CLEAN_SESSION
-	mvh.KeepAlive = 60
+	mvh.BuildConnect("MQTT", 4, variableheader.CONNECT_FLAG_CLEAN_SESSION|variableheader.CONNECT_FLAG_CLEAN_SESSION, 60)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(idClient)
@@ -51,6 +48,9 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 	// log.Printf("Payload: %s .................................\n", string(mp.Payload))
 
 	if options != nil {
+
+		//mvh.ConnectFlag = variableheader.CONNECT_FLAG_CLEAN_SESSION | variableheader.CONNECT_FLAG_USERNAME | variableheader.CONNECT_FLAG_PASSWORD
+
 		mp.Header.Control = mp.Header.Control | (0x01 << 7) | (0x01 << 6)
 		mp.Payload.AddString(options.Login)
 		mp.Payload.AddString(options.Password)
@@ -101,6 +101,53 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 			return false, nil
 		}
 	}
+
+	return false, nil
+}
+
+// QoS 0: There won’t be any response
+// QoS 1: PUBACK – Publish acknowledgement response
+// QoS 2 :
+// wait for PUBREC – Publish received.
+// send back PUBREL – Publish release.
+// wait for PUBCOMP – Publish complete.
+func (mc *MqttClient) Publish(topicName string, message string) (bool, error) {
+
+	mh := header.NewMqttHeader()
+	mh.Control = header.PUBLISH
+
+	mvh := variableheader.NewMqttVariableHeader()
+	mvh.BuildPublish(topicName)
+
+	mpl := payload.NewMqttPayload()
+	mpl.AddString(message)
+
+	mp := packet.NewMqttPacket()
+	mp.Header = mh
+	mp.VariableHeader = mvh
+	mp.Payload = mpl
+
+	buffer := mp.Encode()
+
+	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
+
+	n, err := (*mc.conn).Write(buffer)
+	if err != nil {
+		log.Printf("Sender: Write Error: %s\n", err)
+		return false, err
+	}
+
+	log.Printf("Sender: Wrote %d byte(s)\n", n)
+
+	// buffer = make([]byte, 100)
+	// response, err := (*mc.conn).Read(buffer)
+
+	// if err != nil {
+	// 	log.Printf("Sender: Read Error: %s\n", err)
+	// 	return false, err
+	// }
+
+	// fmt.Println(response)
 
 	return false, nil
 }

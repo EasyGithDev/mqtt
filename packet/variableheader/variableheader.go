@@ -1,8 +1,6 @@
 package variableheader
 
 import (
-	"bytes"
-
 	"github.com/easygithdev/mqtt/packet/util"
 )
 
@@ -16,17 +14,19 @@ var CONNECT_FLAG_USERNAME byte = 0x80
 
 type MqttVariableHeader struct {
 	// Length of protocol name (expl MQTT4 -> 4)
-	ProtocolLength uint16
+	// ProtocolLength uint16
 
 	// Protocol + version (expl MQTT4)
-	ProtocolName    string
-	ProtocolVersion byte
+	// ProtocolName    string
+	// ProtocolVersion byte
 
 	// Connect flag (expl clean session)
-	ConnectFlag byte
+	// ConnectFlag byte
 
 	// Keep alive (2 bytes)
-	KeepAlive uint16
+	// KeepAlive uint16
+
+	content []byte
 }
 
 func NewMqttVariableHeader() *MqttVariableHeader {
@@ -34,31 +34,40 @@ func NewMqttVariableHeader() *MqttVariableHeader {
 }
 
 // 10 bytes = 2 (protocol length) + 4 (protocol name) + 1 (protocol version) + 1 (connect flag) + 2 (keep alive)
-func (mvh *MqttVariableHeader) Encode() []byte {
-	var buffer bytes.Buffer
+func (mvh *MqttVariableHeader) BuildConnect(protocolName string, protocolVersion byte, flag byte, keepalive uint16) {
 
-	buf := util.Uint162bytes(mvh.ProtocolLength)
-	buffer.Write(buf)
+	mvh.content = append(mvh.content, util.StringEncode(protocolName)...)
+	mvh.content = append(mvh.content, []byte{protocolVersion}...)
+	mvh.content = append(mvh.content, []byte{flag}...)
+	mvh.content = append(mvh.content, util.Uint162bytes(keepalive)...)
 
-	buffer.WriteString(mvh.ProtocolName)
-
-	buffer.WriteByte(mvh.ProtocolVersion)
-
-	buffer.WriteByte(mvh.ConnectFlag)
-
-	buf = util.Uint162bytes(mvh.KeepAlive)
-	buffer.Write(buf)
-
-	return buffer.Bytes()
 }
 
-func (mvh *MqttVariableHeader) ComputeProtocolLength() {
-	mvh.ProtocolLength = uint16(len(mvh.ProtocolName))
+func (mvh *MqttVariableHeader) BuildPublish(topicName string) {
+
+	mvh.content = append(mvh.content, util.StringEncode(topicName)...)
+}
+
+func (mvh *MqttVariableHeader) Encode() []byte {
+	// var buffer bytes.Buffer
+
+	// buf := util.Uint162bytes(mvh.ProtocolLength)
+	// buffer.Write(buf)
+
+	// buffer.WriteString(mvh.ProtocolName)
+
+	// buffer.WriteByte(mvh.ProtocolVersion)
+
+	// buffer.WriteByte(mvh.ConnectFlag)
+
+	// buf = util.Uint162bytes(mvh.KeepAlive)
+	// buffer.Write(buf)
+
+	// return buffer.Bytes()
+
+	return mvh.content
 }
 
 func (mvh *MqttVariableHeader) Len() int {
-	if mvh.ProtocolLength != 0 {
-		return 10
-	}
-	return 0
+	return len(mvh.content)
 }

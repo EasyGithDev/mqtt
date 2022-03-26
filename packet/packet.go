@@ -24,7 +24,7 @@ func (mp *MqttPacket) Encode() []byte {
 
 	var mqttBuffer bytes.Buffer
 
-	mp.VariableHeader.ComputeProtocolLength()
+	// mp.VariableHeader.ComputeProtocolLength()
 	mp.Header.ComputeRemainingLength(mp.VariableHeader.Len() + mp.Payload.Len())
 
 	mqttBuffer.Write(mp.Header.Encode())
