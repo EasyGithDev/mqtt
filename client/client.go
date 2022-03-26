@@ -37,7 +37,7 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 	mvh := variableheader.NewMqttVariableHeader()
 	mvh.ProtocolName = "MQTT"
 	mvh.ProtocolVersion = 4
-	mvh.ConnectFlag = 0x2
+	mvh.ConnectFlag = variableheader.CONNECT_FLAG_CLEAN_SESSION
 	mvh.KeepAlive = 60
 
 	mpl := payload.NewMqttPayload()

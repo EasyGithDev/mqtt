@@ -6,6 +6,14 @@ import (
 	"github.com/easygithdev/mqtt/packet/util"
 )
 
+var CONNECT_FLAG_CLEAN_SESSION byte = 0x02
+var CONNECT_FLAG_WILL_FLAG byte = 0x04
+var PUBLCONNECT_FLAG_WILL_QOS_1 byte = 0x08
+var PUBLCONNECT_FLAG_WILL_QOS_2 byte = 0x10
+var CONNECT_FLAG_WILL_RETAIN byte = 0x20
+var CONNECT_FLAG_PASSWORD byte = 0x40
+var CONNECT_FLAG_USERNAME byte = 0x80
+
 type MqttVariableHeader struct {
 	// Length of protocol name (expl MQTT4 -> 4)
 	ProtocolLength uint16
