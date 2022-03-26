@@ -28,25 +28,34 @@ func (mc *MqttClient) SetConn(conn *net.Conn) {
 
 func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (bool, error) {
 
-	mp := packet.NewMqttPacket()
-	mp.Control = packet.CONNECT
-	mp.ProtocolName = "MQTT"
-	mp.ProtocolVersion = 4
-	mp.ConnectFlag = 0x2
-	mp.KeepAlive = 60
+	mh := packet.NewMqttHeader()
+	mh.Control = packet.CONNECT
 
-	mp.AddToPayload(idClient)
-	log.Printf("Payload: %s .................................\n", string(mp.Payload))
+	mvh := packet.NewMqttVariableHeader()
+	mvh.ProtocolName = "MQTT"
+	mvh.ProtocolVersion = 4
+	mvh.ConnectFlag = 0x2
+	mvh.KeepAlive = 60
+
+	mpl := packet.NewMqttPayload()
+	mpl.AddString(idClient)
+
+	mp := packet.NewMqttPacket()
+	mp.Header = mh
+	mp.VariableHeader = mvh
+	mp.Payload = mpl
+
+	// log.Printf("Payload: %s .................................\n", string(mp.Payload))
 
 	if options != nil {
-		mp.Control = mp.Control | (0x01 << 7) | (0x01 << 6)
-		mp.AddToPayload(options.Login)
-		mp.AddToPayload(options.Password)
+		// mp.Control = mp.Control | (0x01 << 7) | (0x01 << 6)
+		// mp.AddToPayload(options.Login)
+		// mp.AddToPayload(options.Password)
 	}
 
-	log.Printf("Payload: %s .................................\n", string(mp.Payload))
+	// log.Printf("Payload: %s .................................\n", string(mp.Payload))
 
-	log.Printf("Sending command: 0x%x \n", mp.Control)
+	// log.Printf("Sending command: 0x%x \n", mp.Control)
 
 	buffer := mp.Encode()
 
@@ -66,9 +75,9 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 		return false, err
 	}
 
-	myPacket := mp.GetPacket(response)
+	// myPacket := mp.GetPacket(response)
 
-	log.Printf("Packet: %s\n", mc.ShowPacket(myPacket))
+	//	log.Printf("Packet: %s\n", mc.ShowPacket(myPacket))
 
 	if response[0] == packet.CONNACK {
 
@@ -93,31 +102,31 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 	return false, nil
 }
 
-func (mc *MqttClient) Disconnect() (bool, error) {
-	mp := packet.NewMqttPacket()
-	mp.Control = packet.DISCONNECT
+// func (mc *MqttClient) Disconnect() (bool, error) {
+// 	mp := packet.NewMqttPacket()
+// 	mp.Control = packet.DISCONNECT
 
-	log.Printf("Sending command: 0x%x \n", mp.Control)
+// 	log.Printf("Sending command: 0x%x \n", mp.Control)
 
-	buffer := mp.Encode()
+// 	buffer := mp.Encode()
 
-	n, err := (*mc.conn).Write(buffer)
-	if err != nil {
-		log.Printf("Sender: Write Error: %s\n", err)
-		return false, err
-	}
+// 	n, err := (*mc.conn).Write(buffer)
+// 	if err != nil {
+// 		log.Printf("Sender: Write Error: %s\n", err)
+// 		return false, err
+// 	}
 
-	log.Printf("Sender: Wrote %d byte(s)\n", n)
+// 	log.Printf("Sender: Wrote %d byte(s)\n", n)
 
-	_, err = mc.Read()
-	if err != nil {
-		log.Printf("Sender: Read Error: %s\n", err)
-		return false, err
-	}
+// 	_, err = mc.Read()
+// 	if err != nil {
+// 		log.Printf("Sender: Read Error: %s\n", err)
+// 		return false, err
+// 	}
 
-	return true, nil
+// 	return true, nil
 
-}
+// }
 
 func (mp *MqttClient) Read() ([]byte, error) {
 

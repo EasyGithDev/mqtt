@@ -3,7 +3,6 @@ package packet
 import (
 	"bytes"
 	"encoding/binary"
-	"log"
 )
 
 //  MQTT Control Packet type
@@ -36,8 +35,7 @@ var CONNECT_REFUSED_5 byte = 0x05
 
 // control + length + protocol name + Protocol Level +Connect Flags + keep alive +Payload
 
-type MqttPacket struct {
-
+type MqttHeader struct {
 	// Fixed header
 	// 1 byte  = Packet type  (4bits) + flags (4bits)
 	Control byte
@@ -49,152 +47,38 @@ type MqttPacket struct {
 	// Remaining length 1-4 bytes
 	// This is the total length without fixed header
 	RemainingLength []byte
-
-	// Length of protocol name (expl MQTT4 -> 4)
-	ProtocolLength uint16
-
-	// Protocol + version (expl MQTT4)
-	ProtocolName    string
-	ProtocolVersion byte
-
-	// Connect flag (expl clean session)
-	ConnectFlag byte
-
-	// Keep alive (2 bytes)
-	KeepAlive uint16
-
-	// Length	(2 bytes)
-	// length of payload
-	// Length uint16
-
-	// Payload
-	Payload []byte
-	// Payload string
 }
 
-func NewMqttPacket() *MqttPacket {
-	return &MqttPacket{}
+func NewMqttHeader() *MqttHeader {
+	return &MqttHeader{}
 }
 
-func (mp *MqttPacket) Encode() []byte {
+func (mh *MqttHeader) Encode() []byte {
+	var buffer bytes.Buffer
 
-	//mp.RemainingLength = 23
-
-	//mp.ProtocolLength = 4
-	// mp.ProtocolName = "MQTT"
-	// mp.ProtocolVersion = 4
-	// mp.ConnectFlag = 0x2
-	// mp.KeepAlive = 60
-	//mp.Length = 7
-	//mp.Payload = payload
-
-	// we start to calcule the strings length
-
-	// the protocol len
-	var bufProtocolLen bytes.Buffer
-	bufProtocolLen.WriteString(mp.ProtocolName)
-	// println("len ProtocoleLen:", len(bufProtocolLen.Bytes()))
-	mp.ProtocolLength = mp.computeLength(bufProtocolLen.Bytes())
-
-	// the payload len
-	//var bufPayload bytes.Buffer
-	//bufPayload.WriteString(mp.Payload)
-	// println("len Payload:", len(bufPayload.Bytes()))
-	//mp.Length = mp.computeLength(bufPayload.Bytes())
-
-	// Compute the remaining Length
-
-	bodyLength := 0
-	if mp.ProtocolLength != 0 {
-		bodyLength = 10
-
-	}
-
-	payloadLength := len(mp.Payload)
-
-	// if mp.Length != 0 {
-	// 	payloadLength = 2 + int(mp.Length)
-	// }
-	mp.RemainingLength = mp.LengthEncode(bodyLength + payloadLength)
-
-	log.Printf("Protocol length Hexadecimal: Ox%X Dec:%d\n", mp.ProtocolLength, mp.ProtocolLength)
-	log.Printf("Payload length Hexadecimal: Ox%X Dec:%d\n", payloadLength, payloadLength)
-	log.Printf("RemainingLength Dec: %d\n", mp.RemainingLength)
-
-	// compute the fields
-
-	var mqttBuffer bytes.Buffer
 	// 1 byte
-	mqttBuffer.WriteByte(mp.Control)
+	buffer.WriteByte(mh.Control)
 
 	// 1-4 bytes
-	mqttBuffer.Write(mp.RemainingLength)
-
-	var buf []byte
-
-	if bodyLength != 0 {
-
-		// 10 bytes = 2 (protocol length) + 4 (protocol name) + 1 (protocol version) + 1 (connect flag) + 2 (keep alive)
-
-		buf = uint162bytes(mp.ProtocolLength)
-		mqttBuffer.Write(buf)
-
-		mqttBuffer.WriteString(mp.ProtocolName)
-
-		mqttBuffer.WriteByte(mp.ProtocolVersion)
-
-		mqttBuffer.WriteByte(mp.ConnectFlag)
-
-		buf = uint162bytes(mp.KeepAlive)
-		mqttBuffer.Write(buf)
-	}
-
-	if payloadLength != 0 {
-		// 2 bytes
-		// buf = uint162bytes(mp.Length)
-		// mqttBuffer.Write(buf)
-
-		// n bytes
-		// mqttBuffer.WriteString(mp.Payload)
-		mqttBuffer.Write(mp.Payload)
-
-	}
-
-	return mqttBuffer.Bytes()
-}
-
-func (mp *MqttPacket) Decode(buffer []byte) {
-	mp.Control = buffer[0]
-	size := mp.RemaingLengthDecode(buffer[1:2])
-
-	log.Printf("Size of buffer %d\n", size)
-}
-
-func (mp *MqttPacket) GetPacket(buffer []byte) []byte {
-	mp.Control = buffer[0]
-	size := mp.RemaingLengthDecode(buffer[1:2])
-
-	return buffer[:size+2]
-}
-
-func (mp *MqttPacket) AddToPayload(str string) {
-	var buffer bytes.Buffer
-	buffer.Write(mp.Payload)
-	buffer.Write(mp.StringEncode(str))
-	mp.Payload = buffer.Bytes()
-}
-
-func (mp *MqttPacket) StringEncode(str string) []byte {
-	// size := mp.LengthEncode(len(str))
-	size := uint162bytes(uint16(len(str)))
-	var buffer bytes.Buffer
-	buffer.Write(size)
-	buffer.WriteString(str)
+	buffer.Write(mh.RemainingLength)
 
 	return buffer.Bytes()
 }
 
-func (mp *MqttPacket) LengthEncode(x int) []byte {
+func (mh *MqttHeader) Decode(buffer []byte) {
+	mh.Control = buffer[0]
+	mh.RemainingLength = buffer[1:]
+}
+
+func (mh *MqttHeader) Len() int {
+	return 1 + len(mh.RemainingLength)
+}
+
+func (mh *MqttHeader) ComputeRemainingLength(len int) {
+	mh.RemainingLength = mh.RemainingLengthEncode(len)
+}
+
+func (mh *MqttHeader) RemainingLengthEncode(x int) []byte {
 
 	var buffer []byte = make([]byte, 0)
 	var encodedByte int = 0
@@ -220,7 +104,7 @@ func (mp *MqttPacket) LengthEncode(x int) []byte {
 	return buffer
 }
 
-func (mp *MqttPacket) RemaingLengthDecode(x []byte) int {
+func (mh *MqttHeader) RemaingLengthDecode(x []byte) int {
 
 	var multiplier int = 1
 
@@ -249,9 +133,176 @@ func (mp *MqttPacket) RemaingLengthDecode(x []byte) int {
 	return value
 }
 
-func (mp *MqttPacket) computeLength(buffer []byte) uint16 {
-	return uint16(len(buffer))
+type MqttVariableHeader struct {
+	// Length of protocol name (expl MQTT4 -> 4)
+	ProtocolLength uint16
+
+	// Protocol + version (expl MQTT4)
+	ProtocolName    string
+	ProtocolVersion byte
+
+	// Connect flag (expl clean session)
+	ConnectFlag byte
+
+	// Keep alive (2 bytes)
+	KeepAlive uint16
 }
+
+func NewMqttVariableHeader() *MqttVariableHeader {
+	return &MqttVariableHeader{}
+}
+
+// 10 bytes = 2 (protocol length) + 4 (protocol name) + 1 (protocol version) + 1 (connect flag) + 2 (keep alive)
+func (mvh *MqttVariableHeader) Encode() []byte {
+	var buffer bytes.Buffer
+
+	buf := uint162bytes(mvh.ProtocolLength)
+	buffer.Write(buf)
+
+	buffer.WriteString(mvh.ProtocolName)
+
+	buffer.WriteByte(mvh.ProtocolVersion)
+
+	buffer.WriteByte(mvh.ConnectFlag)
+
+	buf = uint162bytes(mvh.KeepAlive)
+	buffer.Write(buf)
+
+	return buffer.Bytes()
+}
+
+func (mvh *MqttVariableHeader) ComputeProtocolLength() {
+	mvh.ProtocolLength = uint16(len(mvh.ProtocolName))
+}
+
+func (mvh *MqttVariableHeader) Len() int {
+	if mvh.ProtocolLength != 0 {
+		return 10
+	}
+	return 0
+}
+
+type MqttPayload struct {
+	// Length	(2 bytes)
+	// length of payload
+	// Length uint16
+
+	// Payload
+	Payload []byte
+	// Payload string
+}
+
+func NewMqttPayload() *MqttPayload {
+	return &MqttPayload{}
+}
+
+func (mp *MqttPayload) Encode() []byte {
+	return mp.Payload
+}
+
+func (mp *MqttPayload) Len() int {
+	return len(mp.Payload)
+}
+
+func (mp *MqttPayload) AddString(str string) {
+	mp.Payload = append(mp.Payload, StringEncode(str)...)
+}
+
+type MqttPacket struct {
+	Header         *MqttHeader
+	VariableHeader *MqttVariableHeader
+	Payload        *MqttPayload
+}
+
+func NewMqttPacket() *MqttPacket {
+	return &MqttPacket{}
+}
+
+func (mp *MqttPacket) Encode() []byte {
+
+	// we start to calcule the strings length
+
+	// the protocol len
+	// var bufProtocolLen bytes.Buffer
+	// bufProtocolLen.WriteString(mp.ProtocolName)
+	// // println("len ProtocoleLen:", len(bufProtocolLen.Bytes()))
+	// mp.ProtocolLength = mp.computeLength(bufProtocolLen.Bytes())
+
+	// the payload len
+	//var bufPayload bytes.Buffer
+	//bufPayload.WriteString(mp.Payload)
+	// println("len Payload:", len(bufPayload.Bytes()))
+	//mp.Length = mp.computeLength(bufPayload.Bytes())
+
+	// Compute the remaining Length
+
+	// bodyLength := 0
+	// if mp.ProtocolLength != 0 {
+	// 	bodyLength = 10
+
+	// }
+
+	// payloadLength := len(mp.Payload)
+
+	// if mp.Length != 0 {
+	// 	payloadLength = 2 + int(mp.Length)
+	// }
+
+	// log.Printf("Protocol length Hexadecimal: Ox%X Dec:%d\n", mp.ProtocolLength, mp.ProtocolLength)
+	// log.Printf("Payload length Hexadecimal: Ox%X Dec:%d\n", payloadLength, payloadLength)
+	// log.Printf("RemainingLength Dec: %d\n", mp.RemainingLength)
+
+	// compute the fields
+
+	var mqttBuffer bytes.Buffer
+
+	mp.VariableHeader.ComputeProtocolLength()
+	mp.Header.ComputeRemainingLength(mp.VariableHeader.Len() + mp.Payload.Len())
+
+	mqttBuffer.Write(mp.Header.Encode())
+
+	if mp.VariableHeader.Len() > 0 {
+		mqttBuffer.Write(mp.VariableHeader.Encode())
+	}
+
+	if mp.Payload.Len() > 0 {
+		mqttBuffer.Write(mp.Payload.Encode())
+	}
+
+	return mqttBuffer.Bytes()
+}
+
+// func (mp *MqttPacket) ShowBytes() string {
+
+// 	str := ""
+// 	for i := 0; i < len(buffer); i++ {
+// 		str += fmt.Sprintf("0x%X ", buffer[i])
+// 	}
+// 	str += "\n"
+
+// 	return str
+// }
+
+// func (mp *MqttPacket) GetPacket(buffer []byte) []byte {
+// 	mp.Control = buffer[0]
+// 	size := mp.RemaingLengthDecode(buffer[1:2])
+
+// 	return buffer[:size+2]
+// }
+
+func StringEncode(str string) []byte {
+	// size := mp.LengthEncode(len(str))
+	size := uint162bytes(uint16(len(str)))
+	var buffer bytes.Buffer
+	buffer.Write(size)
+	buffer.WriteString(str)
+
+	return buffer.Bytes()
+}
+
+// func (mp *MqttPacket) computeLength(buffer []byte) uint16 {
+// 	return uint16(len(buffer))
+// }
 
 func uint162bytes(val uint16) []byte {
 	buf := make([]byte, 2)
