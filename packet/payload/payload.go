@@ -27,3 +27,7 @@ func (mp *MqttPayload) Len() int {
 func (mp *MqttPayload) AddString(str string) {
 	mp.Payload = append(mp.Payload, util.StringEncode(str)...)
 }
+
+func (mp *MqttPayload) AddQos(qos byte) {
+	mp.Payload = append(mp.Payload, []byte{0}...)
+}

@@ -48,6 +48,12 @@ func (mvh *MqttVariableHeader) BuildPublish(topicName string) {
 	mvh.content = append(mvh.content, util.StringEncode(topicName)...)
 }
 
+func (mvh *MqttVariableHeader) BuildSubscribe(packetId uint16, topicName string) {
+
+	mvh.content = append(mvh.content, util.Uint162bytes(packetId)...)
+	mvh.content = append(mvh.content, util.StringEncode(topicName)...)
+}
+
 func (mvh *MqttVariableHeader) Encode() []byte {
 	// var buffer bytes.Buffer
 

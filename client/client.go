@@ -74,7 +74,7 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 
 	response, err := mc.Read()
 	if err != nil {
-		log.Printf("Sender: Read Error: %s\n", err)
+		log.Printf("Read Error: %s\n", err)
 		return false, err
 	}
 
@@ -100,6 +100,52 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 		default:
 			return false, nil
 		}
+	}
+
+	return false, nil
+}
+
+func (mc *MqttClient) Subscribe(topicName string) (bool, error) {
+	mh := header.NewMqttHeader()
+	mh.Control = header.SUBSCRIBE | 1<<1
+
+	var packetId uint16 = 21
+
+	mvh := variableheader.NewMqttVariableHeader()
+	mvh.BuildSubscribe(packetId, topicName)
+
+	mpl := payload.NewMqttPayload()
+	mpl.AddQos(0x00)
+
+	mp := packet.NewMqttPacket()
+	mp.Header = mh
+	mp.VariableHeader = mvh
+	mp.Payload = mpl
+
+	buffer := mp.Encode()
+
+	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
+
+	n, err := (*mc.conn).Write(buffer)
+	if err != nil {
+		log.Printf("Sender: Write Error: %s\n", err)
+		return false, err
+	}
+
+	log.Printf("Sender: Wrote %d byte(s)\n", n)
+
+	response, err := mc.Read()
+	if err != nil {
+		log.Printf("Read Error: %s\n", err)
+		return false, err
+	}
+
+	fmt.Println(response)
+
+	log.Printf("Packet: %s\n", mc.ShowPacket(response))
+
+	if response[0] == header.SUBACK {
+		return true, nil
 	}
 
 	return false, nil
@@ -181,12 +227,14 @@ func (mc *MqttClient) Publish(topicName string, message string) (bool, error) {
 func (mp *MqttClient) Read() ([]byte, error) {
 
 	buffer := make([]byte, 100)
-	_, err := (*mp.conn).Read(buffer)
+	n, err := (*mp.conn).Read(buffer)
 	if err != nil {
-		return buffer, err
+		return nil, err
 	}
 
-	return buffer, nil
+	log.Printf("Read: %d byte(s)\n", n)
+
+	return buffer[:n+1], nil
 }
 
 func (mp *MqttClient) ShowPacket(buffer []byte) string {

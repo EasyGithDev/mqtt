@@ -65,7 +65,16 @@ func main() {
 		log.Printf("Connection established: \n")
 	}
 
-	mc.Publish("/supertest", "i like hello mamam")
+	// mc.Publish("/hello/world", "i like hello mamam")
+
+	resp, err = mc.Subscribe("openlabpro")
+	if err != nil {
+		log.Printf("Subscribe Error: %s\n", err)
+	}
+
+	if resp {
+		log.Printf("Subcribe established: \n")
+	}
 
 	// resp, err = mc.Disconnect()
 
