@@ -34,12 +34,17 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 	mp.ProtocolVersion = 4
 	mp.ConnectFlag = 0x2
 	mp.KeepAlive = 60
-	mp.Payload = idClient
+
+	mp.AddToPayload(idClient)
+	log.Printf("Payload: %s .................................\n", string(mp.Payload))
 
 	if options != nil {
-		mp.Control = mp.Control & (0x01 << 7) & (0x01 << 6)
-		mp.Payload += options.Login + options.Password
+		mp.Control = mp.Control | (0x01 << 7) | (0x01 << 6)
+		mp.AddToPayload(options.Login)
+		mp.AddToPayload(options.Password)
 	}
+
+	log.Printf("Payload: %s .................................\n", string(mp.Payload))
 
 	log.Printf("Sending command: 0x%x \n", mp.Control)
 
@@ -68,6 +73,8 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 	if response[0] == packet.CONNACK {
 
 		switch response[3] {
+		case packet.CONNECT_ACCEPTED:
+			return true, nil
 		case packet.CONNECT_REFUSED_1:
 			return false, errors.New("connection Refused, unacceptable protocol version")
 		case packet.CONNECT_REFUSED_2:
@@ -83,7 +90,7 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 		}
 	}
 
-	return true, nil
+	return false, nil
 }
 
 func (mc *MqttClient) Disconnect() (bool, error) {

@@ -15,8 +15,8 @@ const (
 	// connType = "tcp"
 
 	connHost = "test.mosquitto.org"
-	connPort = "1883"
-	// connPort = "1884"
+	//connPort = "1883"
+	connPort = "1884"
 	connType = "tcp"
 
 	DELIMITER byte = '\n'
@@ -50,7 +50,7 @@ func main() {
 	// Adding connection to mc
 	mc.SetConn(&conn)
 	options := &client.MqttConnectOptions{Login: "rw", Password: "readwrite"}
-	options = nil
+	//options = nil
 	resp, err := mc.Connect("golang.test-1", options)
 
 	if err != nil {

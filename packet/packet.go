@@ -65,11 +65,11 @@ type MqttPacket struct {
 
 	// Length	(2 bytes)
 	// length of payload
-	Length uint16
+	// Length uint16
 
 	// Payload
-	// Payload []byte
-	Payload string
+	Payload []byte
+	// Payload string
 }
 
 func NewMqttPacket() *MqttPacket {
@@ -97,10 +97,10 @@ func (mp *MqttPacket) Encode() []byte {
 	mp.ProtocolLength = mp.computeLength(bufProtocolLen.Bytes())
 
 	// the payload len
-	var bufPayload bytes.Buffer
-	bufPayload.WriteString(mp.Payload)
+	//var bufPayload bytes.Buffer
+	//bufPayload.WriteString(mp.Payload)
 	// println("len Payload:", len(bufPayload.Bytes()))
-	mp.Length = mp.computeLength(bufPayload.Bytes())
+	//mp.Length = mp.computeLength(bufPayload.Bytes())
 
 	// Compute the remaining Length
 
@@ -110,14 +110,15 @@ func (mp *MqttPacket) Encode() []byte {
 
 	}
 
-	payloadLength := 0
-	if mp.Length != 0 {
-		payloadLength = 2 + int(mp.Length)
-	}
+	payloadLength := len(mp.Payload)
+
+	// if mp.Length != 0 {
+	// 	payloadLength = 2 + int(mp.Length)
+	// }
 	mp.RemainingLength = mp.LengthEncode(bodyLength + payloadLength)
 
 	log.Printf("Protocol length Hexadecimal: Ox%X Dec:%d\n", mp.ProtocolLength, mp.ProtocolLength)
-	log.Printf("Payload length Hexadecimal: Ox%X Dec:%d\n", mp.Length, mp.Length)
+	log.Printf("Payload length Hexadecimal: Ox%X Dec:%d\n", payloadLength, payloadLength)
 	log.Printf("RemainingLength Dec: %d\n", mp.RemainingLength)
 
 	// compute the fields
@@ -150,11 +151,13 @@ func (mp *MqttPacket) Encode() []byte {
 
 	if payloadLength != 0 {
 		// 2 bytes
-		buf = uint162bytes(mp.Length)
-		mqttBuffer.Write(buf)
+		// buf = uint162bytes(mp.Length)
+		// mqttBuffer.Write(buf)
 
 		// n bytes
-		mqttBuffer.WriteString(mp.Payload)
+		// mqttBuffer.WriteString(mp.Payload)
+		mqttBuffer.Write(mp.Payload)
+
 	}
 
 	return mqttBuffer.Bytes()
@@ -175,14 +178,15 @@ func (mp *MqttPacket) GetPacket(buffer []byte) []byte {
 }
 
 func (mp *MqttPacket) AddToPayload(str string) {
-	//var buffer bytes.Buffer
-	// buffer.Write(mp.Payload)
-	// buffer.Write(mp.StringEncode(str))
-	// mp.Payload = buffer.Bytes()
+	var buffer bytes.Buffer
+	buffer.Write(mp.Payload)
+	buffer.Write(mp.StringEncode(str))
+	mp.Payload = buffer.Bytes()
 }
 
 func (mp *MqttPacket) StringEncode(str string) []byte {
-	size := mp.LengthEncode(len(str))
+	// size := mp.LengthEncode(len(str))
+	size := uint162bytes(uint16(len(str)))
 	var buffer bytes.Buffer
 	buffer.Write(size)
 	buffer.WriteString(str)
