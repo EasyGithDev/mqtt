@@ -1,4 +1,4 @@
-package packet
+package header
 
 import (
 	"testing"
@@ -6,8 +6,8 @@ import (
 
 func TestRemaingLengthEncode(t *testing.T) {
 
-	mp := NewMqttPacket()
-	remainingLength := mp.RemaingLengthEncode(321)
+	mp := NewMqttHeader()
+	remainingLength := mp.RemainingLengthEncode(321)
 
 	if remainingLength[0] != 193 {
 		t.Errorf("remainingLength error  found %d; want 193", remainingLength[0])
@@ -22,7 +22,7 @@ func TestRemaingLengthDecode(t *testing.T) {
 
 	remainingLength := []byte{193, 2}
 
-	mp := NewMqttPacket()
+	mp := NewMqttHeader()
 	res := mp.RemaingLengthDecode(remainingLength)
 
 	if res != 321 {

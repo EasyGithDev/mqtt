@@ -7,6 +7,9 @@ import (
 	"net"
 
 	"github.com/easygithdev/mqtt/packet"
+	"github.com/easygithdev/mqtt/packet/header"
+	"github.com/easygithdev/mqtt/packet/payload"
+	"github.com/easygithdev/mqtt/packet/variableheader"
 )
 
 type MqttConnectOptions struct {
@@ -28,16 +31,16 @@ func (mc *MqttClient) SetConn(conn *net.Conn) {
 
 func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (bool, error) {
 
-	mh := packet.NewMqttHeader()
-	mh.Control = packet.CONNECT
+	mh := header.NewMqttHeader()
+	mh.Control = header.CONNECT
 
-	mvh := packet.NewMqttVariableHeader()
+	mvh := variableheader.NewMqttVariableHeader()
 	mvh.ProtocolName = "MQTT"
 	mvh.ProtocolVersion = 4
 	mvh.ConnectFlag = 0x2
 	mvh.KeepAlive = 60
 
-	mpl := packet.NewMqttPayload()
+	mpl := payload.NewMqttPayload()
 	mpl.AddString(idClient)
 
 	mp := packet.NewMqttPacket()
@@ -48,9 +51,9 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 	// log.Printf("Payload: %s .................................\n", string(mp.Payload))
 
 	if options != nil {
-		// mp.Control = mp.Control | (0x01 << 7) | (0x01 << 6)
-		// mp.AddToPayload(options.Login)
-		// mp.AddToPayload(options.Password)
+		mp.Header.Control = mp.Header.Control | (0x01 << 7) | (0x01 << 6)
+		mp.Payload.AddString(options.Login)
+		mp.Payload.AddString(options.Password)
 	}
 
 	// log.Printf("Payload: %s .................................\n", string(mp.Payload))
@@ -79,20 +82,20 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 
 	//	log.Printf("Packet: %s\n", mc.ShowPacket(myPacket))
 
-	if response[0] == packet.CONNACK {
+	if response[0] == header.CONNACK {
 
 		switch response[3] {
-		case packet.CONNECT_ACCEPTED:
+		case header.CONNECT_ACCEPTED:
 			return true, nil
-		case packet.CONNECT_REFUSED_1:
+		case header.CONNECT_REFUSED_1:
 			return false, errors.New("connection Refused, unacceptable protocol version")
-		case packet.CONNECT_REFUSED_2:
+		case header.CONNECT_REFUSED_2:
 			return false, errors.New("connection Refused, identifier rejected")
-		case packet.CONNECT_REFUSED_3:
+		case header.CONNECT_REFUSED_3:
 			return false, errors.New("connection Refused, Server unavailable")
-		case packet.CONNECT_REFUSED_4:
+		case header.CONNECT_REFUSED_4:
 			return false, errors.New("connection Refused, bad user name or password")
-		case packet.CONNECT_REFUSED_5:
+		case header.CONNECT_REFUSED_5:
 			return false, errors.New("connection Refused, not authorized")
 		default:
 			return false, nil
