@@ -35,7 +35,7 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 	mh.Control = header.CONNECT
 
 	mvh := variableheader.NewMqttVariableHeader()
-	mvh.BuildConnect("MQTT", 4, variableheader.CONNECT_FLAG_CLEAN_SESSION|variableheader.CONNECT_FLAG_CLEAN_SESSION, 60)
+	mvh.BuildConnect("MQTT", 4, variableheader.CONNECT_FLAG_CLEAN_SESSION, 60)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(idClient)
@@ -235,6 +235,21 @@ func (mp *MqttClient) Read() ([]byte, error) {
 	log.Printf("Read: %d byte(s)\n", n)
 
 	return buffer[:n+1], nil
+}
+
+func (mp *MqttClient) ReadLoop() {
+
+	for {
+		buffer := make([]byte, 100)
+		n, err := (*mp.conn).Read(buffer)
+		if err != nil {
+			log.Printf("Error: %s\n", err)
+		}
+
+		log.Printf("Read: %d byte(s)\n", n)
+		log.Printf("Read: %s \n", string(buffer[:n+1]))
+	}
+
 }
 
 func (mp *MqttClient) ShowPacket(buffer []byte) string {

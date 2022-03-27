@@ -67,13 +67,14 @@ func main() {
 
 	// mc.Publish("/hello/world", "i like hello mamam")
 
-	resp, err = mc.Subscribe("openlabpro")
+	resp, err = mc.Subscribe("/tartine/de/confiture")
 	if err != nil {
 		log.Printf("Subscribe Error: %s\n", err)
 	}
 
 	if resp {
-		log.Printf("Subcribe established: \n")
+		log.Printf("Subcribe established \n")
+		mc.ReadLoop()
 	}
 
 	// resp, err = mc.Disconnect()
