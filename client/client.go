@@ -9,6 +9,7 @@ import (
 	"github.com/easygithdev/mqtt/packet"
 	"github.com/easygithdev/mqtt/packet/header"
 	"github.com/easygithdev/mqtt/packet/payload"
+	"github.com/easygithdev/mqtt/packet/util"
 	"github.com/easygithdev/mqtt/packet/variableheader"
 )
 
@@ -247,7 +248,9 @@ func (mp *MqttClient) ReadLoop() {
 		}
 
 		log.Printf("Read: %d byte(s)\n", n)
-		log.Printf("Read: %s \n", string(buffer[:n+1]))
+		// log.Printf("Read: %s \n", string(buffer[:n+1]))
+		log.Printf("Read: %s \n", util.StringDecode(buffer[:n+1]))
+
 	}
 
 }

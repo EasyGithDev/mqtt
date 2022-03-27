@@ -1,6 +1,8 @@
 package payload
 
-import "github.com/easygithdev/mqtt/packet/util"
+import (
+	"github.com/easygithdev/mqtt/packet/util"
+)
 
 type MqttPayload struct {
 	// Length	(2 bytes)
@@ -30,4 +32,8 @@ func (mp *MqttPayload) AddString(str string) {
 
 func (mp *MqttPayload) AddQos(qos byte) {
 	mp.Payload = append(mp.Payload, []byte{0}...)
+}
+
+func (mp *MqttPayload) ShowMessage() string {
+	return util.StringDecode(mp.Payload)
 }
