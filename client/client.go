@@ -13,7 +13,7 @@ import (
 	"github.com/easygithdev/mqtt/packet/variableheader"
 )
 
-// type onConnect func(userdata, flags, rc)
+type onConnect func(string, string, byte)
 
 // type onDisConnect func(userdata, flags, rc)
 
@@ -22,11 +22,13 @@ import (
 type MqttConnectOptions struct {
 	Login    string
 	Password string
+	QoS      byte
 }
 
 type MqttClient struct {
 	clientId string
 	conn     net.Conn
+	options  *MqttConnectOptions
 }
 
 func NewMqttClient(clientId string) *MqttClient {
@@ -35,6 +37,10 @@ func NewMqttClient(clientId string) *MqttClient {
 
 func (mc *MqttClient) SetConn(conn net.Conn) {
 	mc.conn = conn
+}
+
+func (mc *MqttClient) SetOptions(options *MqttConnectOptions) {
+	mc.options = options
 }
 
 func (mc *MqttClient) Connect(host string, port string) (bool, error) {
@@ -52,7 +58,7 @@ func (mc *MqttClient) Disconnect() {
 	mc.conn.Close()
 }
 
-func (mc *MqttClient) MqttConnect(options *MqttConnectOptions) (bool, error) {
+func (mc *MqttClient) MqttConnect() (bool, error) {
 
 	mh := header.NewMqttHeader()
 	mh.Control = header.CONNECT
@@ -70,13 +76,13 @@ func (mc *MqttClient) MqttConnect(options *MqttConnectOptions) (bool, error) {
 
 	// log.Printf("Payload: %s .................................\n", string(mp.Payload))
 
-	if options != nil {
+	if mc.options != nil {
 
 		//mvh.ConnectFlag = variableheader.CONNECT_FLAG_CLEAN_SESSION | variableheader.CONNECT_FLAG_USERNAME | variableheader.CONNECT_FLAG_PASSWORD
 
 		mp.Header.Control = mp.Header.Control | (0x01 << 7) | (0x01 << 6)
-		mp.Payload.AddString(options.Login)
-		mp.Payload.AddString(options.Password)
+		mp.Payload.AddString(mc.options.Login)
+		mp.Payload.AddString(mc.options.Password)
 	}
 
 	// log.Printf("Payload: %s .................................\n", string(mp.Payload))
@@ -129,6 +135,14 @@ func (mc *MqttClient) MqttConnect(options *MqttConnectOptions) (bool, error) {
 }
 
 func (mc *MqttClient) Subscribe(topic string) (bool, error) {
+
+	// Adding connection to mc
+	_, err := mc.MqttConnect()
+
+	if err != nil {
+		return false, nil
+	}
+
 	mh := header.NewMqttHeader()
 	mh.Control = header.SUBSCRIBE | 1<<1
 
@@ -183,9 +197,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 
 	// Adding connection to mc
-	options := &MqttConnectOptions{Login: "rw", Password: "readwrite"}
-	options = nil
-	_, err := mc.MqttConnect(options)
+	_, err := mc.MqttConnect()
 
 	if err != nil {
 		return false, nil

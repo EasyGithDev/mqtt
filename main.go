@@ -55,24 +55,26 @@ func main() {
 	// Publish
 	///////////////////////////////////////////////////////////
 
-	_, err = mc.Publish("/hello/world", "this is my hello world")
+	// mc.SetOptions(&client.MqttConnectOptions{Login: "aa", Password: "bb"})
 
-	if err != nil {
-		log.Print("Error publishing:", err.Error())
-	}
+	// _, err = mc.Publish("/hello/world", "this is my hello world")
+
+	// if err != nil {
+	// 	log.Print("Error publishing:", err.Error())
+	// }
 
 	///////////////////////////////////////////////////////////
 	// Subscribe
 	///////////////////////////////////////////////////////////
 
-	// resp, err = mc.Subscribe("/tartine/de/confiture")
-	// if err != nil {
-	// 	log.Printf("Subscribe Error: %s\n", err)
-	// }
+	resp, err := mc.Subscribe("/tartine/de/confiture")
+	if err != nil {
+		log.Printf("Subscribe Error: %s\n", err)
+	}
 
-	// if resp {
-	// 	log.Printf("Subcribe established \n")
-	// 	mc.ReadLoop()
-	// }
+	if resp {
+		log.Printf("Subcribe established \n")
+		mc.ReadLoop()
+	}
 
 }

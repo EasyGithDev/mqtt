@@ -26,21 +26,18 @@ func StringEncode(str string) []byte {
 }
 
 func StringDecode(b []byte) string {
-	res := ""
+
 	buffer := bytes.NewBuffer(b)
-	for buffer.Len() > 0 {
-		buffSize := make([]byte, 2)
-		buffer.Read(buffSize)
 
-		size := Bytes2uint16(buffSize)
+	buffSize := make([]byte, 2)
+	buffer.Read(buffSize)
 
-		buffStr := make([]byte, size)
-		buffer.Read(buffStr)
+	size := Bytes2uint16(buffSize)
 
-		res += string(buffStr)
+	buffStr := make([]byte, size)
+	buffer.Read(buffStr)
 
-	}
-	return res
+	return string(buffStr)
 }
 
 // func (mp *MqttPacket) computeLength(buffer []byte) uint16 {
