@@ -40,6 +40,20 @@ func (mp *MqttPacket) Encode() []byte {
 	return mqttBuffer.Bytes()
 }
 
+func (mp *MqttPacket) Decode(data []byte) {
+
+	mp.Header.Decode(data)
+
+	// check the first byte
+	switch data[0] {
+	case header.CONNACK:
+	case header.PUBACK:
+	case header.SUBACK:
+
+	}
+
+}
+
 // func (mp *MqttPacket) ShowBytes() string {
 
 // 	str := ""

@@ -13,24 +13,46 @@ import (
 	"github.com/easygithdev/mqtt/packet/variableheader"
 )
 
+// type onConnect func(userdata, flags, rc)
+
+// type onDisConnect func(userdata, flags, rc)
+
+// type onMessage func(userdata, message)
+
 type MqttConnectOptions struct {
 	Login    string
 	Password string
 }
 
 type MqttClient struct {
-	conn *net.Conn
+	clientId string
+	conn     net.Conn
 }
 
-func NewMqttClient() *MqttClient {
-	return &MqttClient{}
+func NewMqttClient(clientId string) *MqttClient {
+	return &MqttClient{clientId: clientId}
 }
 
-func (mc *MqttClient) SetConn(conn *net.Conn) {
+func (mc *MqttClient) SetConn(conn net.Conn) {
 	mc.conn = conn
 }
 
-func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (bool, error) {
+func (mc *MqttClient) Connect(host string, port string) (bool, error) {
+	conn, err := net.Dial("tcp", host+":"+port)
+
+	if err != nil {
+		log.Print("Error connecting:", err.Error())
+		return false, err
+	}
+	mc.conn = conn
+	return true, nil
+}
+
+func (mc *MqttClient) Disconnect() {
+	mc.conn.Close()
+}
+
+func (mc *MqttClient) MqttConnect(options *MqttConnectOptions) (bool, error) {
 
 	mh := header.NewMqttHeader()
 	mh.Control = header.CONNECT
@@ -39,7 +61,7 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 	mvh.BuildConnect("MQTT", 4, variableheader.CONNECT_FLAG_CLEAN_SESSION, 60)
 
 	mpl := payload.NewMqttPayload()
-	mpl.AddString(idClient)
+	mpl.AddString(mc.clientId)
 
 	mp := packet.NewMqttPacket()
 	mp.Header = mh
@@ -65,7 +87,7 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 
 	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
 
-	n, err := (*mc.conn).Write(buffer)
+	n, err := mc.conn.Write(buffer)
 	if err != nil {
 		log.Printf("Sender: Write Error: %s\n", err)
 		return false, err
@@ -106,14 +128,14 @@ func (mc *MqttClient) Connect(idClient string, options *MqttConnectOptions) (boo
 	return false, nil
 }
 
-func (mc *MqttClient) Subscribe(topicName string) (bool, error) {
+func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	mh := header.NewMqttHeader()
 	mh.Control = header.SUBSCRIBE | 1<<1
 
 	var packetId uint16 = 21
 
 	mvh := variableheader.NewMqttVariableHeader()
-	mvh.BuildSubscribe(packetId, topicName)
+	mvh.BuildSubscribe(packetId, topic)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddQos(0x00)
@@ -127,7 +149,7 @@ func (mc *MqttClient) Subscribe(topicName string) (bool, error) {
 
 	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
 
-	n, err := (*mc.conn).Write(buffer)
+	n, err := mc.conn.Write(buffer)
 	if err != nil {
 		log.Printf("Sender: Write Error: %s\n", err)
 		return false, err
@@ -158,13 +180,27 @@ func (mc *MqttClient) Subscribe(topicName string) (bool, error) {
 // wait for PUBREC – Publish received.
 // send back PUBREL – Publish release.
 // wait for PUBCOMP – Publish complete.
-func (mc *MqttClient) Publish(topicName string, message string) (bool, error) {
+func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
+
+	// Adding connection to mc
+	options := &MqttConnectOptions{Login: "rw", Password: "readwrite"}
+	options = nil
+	_, err := mc.MqttConnect(options)
+
+	if err != nil {
+		return false, nil
+	}
+
+	// if resp {
+	//log.Printf("Connection established: \n")
+	// Perform the on connect
+	// }
 
 	mh := header.NewMqttHeader()
 	mh.Control = header.PUBLISH
 
 	mvh := variableheader.NewMqttVariableHeader()
-	mvh.BuildPublish(topicName)
+	mvh.BuildPublish(topic)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(message)
@@ -178,7 +214,7 @@ func (mc *MqttClient) Publish(topicName string, message string) (bool, error) {
 
 	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
 
-	n, err := (*mc.conn).Write(buffer)
+	n, err := mc.conn.Write(buffer)
 	if err != nil {
 		log.Printf("Sender: Write Error: %s\n", err)
 		return false, err
@@ -186,17 +222,9 @@ func (mc *MqttClient) Publish(topicName string, message string) (bool, error) {
 
 	log.Printf("Sender: Wrote %d byte(s)\n", n)
 
-	// buffer = make([]byte, 100)
-	// response, err := (*mc.conn).Read(buffer)
+	// performing section for qos1 & qos 2
 
-	// if err != nil {
-	// 	log.Printf("Sender: Read Error: %s\n", err)
-	// 	return false, err
-	// }
-
-	// fmt.Println(response)
-
-	return false, nil
+	return true, nil
 }
 
 // func (mc *MqttClient) Disconnect() (bool, error) {
@@ -207,7 +235,7 @@ func (mc *MqttClient) Publish(topicName string, message string) (bool, error) {
 
 // 	buffer := mp.Encode()
 
-// 	n, err := (*mc.conn).Write(buffer)
+// 	n, err := mc.conn.Write(buffer)
 // 	if err != nil {
 // 		log.Printf("Sender: Write Error: %s\n", err)
 // 		return false, err
@@ -228,7 +256,7 @@ func (mc *MqttClient) Publish(topicName string, message string) (bool, error) {
 func (mp *MqttClient) Read() ([]byte, error) {
 
 	buffer := make([]byte, 100)
-	n, err := (*mp.conn).Read(buffer)
+	n, err := mp.conn.Read(buffer)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +270,7 @@ func (mp *MqttClient) ReadLoop() {
 
 	for {
 		buffer := make([]byte, 100)
-		n, err := (*mp.conn).Read(buffer)
+		n, err := mp.conn.Read(buffer)
 		if err != nil {
 			log.Printf("Error: %s\n", err)
 		}

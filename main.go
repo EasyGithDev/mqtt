@@ -3,7 +3,6 @@ package main
 import (
 	"io/ioutil"
 	"log"
-	"net"
 	"os"
 
 	"github.com/easygithdev/mqtt/client"
@@ -38,53 +37,42 @@ func init() {
 
 func main() {
 
-	conn, err := net.Dial(connType, connHost+":"+connPort)
+	///////////////////////////////////////////////////////////
+	// Connect
+	///////////////////////////////////////////////////////////
+	mc := client.NewMqttClient("go-lang-mqtt")
 
+	_, err := mc.Connect(connHost, connPort)
 	if err != nil {
 		log.Print("Error connecting:", err.Error())
 		os.Exit(1)
 	}
-	defer conn.Close()
+	defer mc.Disconnect()
 
-	log.Print("Connecting to " + connType + " server " + connHost + ":" + connPort)
+	// log.Print("Connecting to " + connType + " server " + connHost + ":" + connPort)
 
-	// Connect
-	mc := client.NewMqttClient()
+	///////////////////////////////////////////////////////////
+	// Publish
+	///////////////////////////////////////////////////////////
 
-	// Adding connection to mc
-	mc.SetConn(&conn)
-	options := &client.MqttConnectOptions{Login: "rw", Password: "readwrite"}
-	options = nil
-	resp, err := mc.Connect("golang.test-1", options)
+	_, err = mc.Publish("/hello/world", "this is my hello world")
 
 	if err != nil {
-		log.Printf("Connect Error: %s\n", err)
+		log.Print("Error publishing:", err.Error())
 	}
 
-	if resp {
-		log.Printf("Connection established: \n")
-	}
+	///////////////////////////////////////////////////////////
+	// Subscribe
+	///////////////////////////////////////////////////////////
 
-	// mc.Publish("/hello/world", "i like hello mamam")
-
-	resp, err = mc.Subscribe("/tartine/de/confiture")
-	if err != nil {
-		log.Printf("Subscribe Error: %s\n", err)
-	}
-
-	if resp {
-		log.Printf("Subcribe established \n")
-		mc.ReadLoop()
-	}
-
-	// resp, err = mc.Disconnect()
-
+	// resp, err = mc.Subscribe("/tartine/de/confiture")
 	// if err != nil {
-	// 	log.Printf("Connect Error: %s\n", err)
+	// 	log.Printf("Subscribe Error: %s\n", err)
 	// }
 
 	// if resp {
-	// 	log.Printf("Disconnected: \n")
+	// 	log.Printf("Subcribe established \n")
+	// 	mc.ReadLoop()
 	// }
 
 }
