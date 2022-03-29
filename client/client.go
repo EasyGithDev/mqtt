@@ -1,8 +1,10 @@
 package client
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -146,7 +148,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	mh := header.NewMqttHeader()
 	mh.Control = header.SUBSCRIBE | 1<<1
 
-	var packetId uint16 = 21
+	var packetId uint16 = 33
 
 	mvh := variableheader.NewMqttVariableHeader()
 	mvh.BuildSubscribe(packetId, topic)
@@ -281,15 +283,45 @@ func (mp *MqttClient) Read() ([]byte, error) {
 func (mp *MqttClient) ReadLoop() {
 
 	for {
-		buffer := make([]byte, 100)
+		buffer := make([]byte, 1024)
 		n, err := mp.conn.Read(buffer)
 		if err != nil {
 			log.Printf("Error: %s\n", err)
+			if err == io.EOF {
+				break
+			}
 		}
 
+		//	res := append([]byte(nil), buffer[:n]...)
+		// b1 := bytes.NewBuffer(buffer[:n])
+		// fmt.Println(b1)
+
 		log.Printf("Read: %d byte(s)\n", n)
-		// log.Printf("Read: %s \n", string(buffer[:n+1]))
-		log.Printf("Read: %s \n", util.StringDecode(buffer[:n+1]))
+
+		b1 := bytes.NewBuffer(buffer[:n])
+		log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+
+		header := header.NewMqttHeader()
+		header.Control, _ = b1.ReadByte()
+
+		log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+
+		nb, rLength := header.RemaingLengthDecode(b1.Bytes())
+		log.Printf("Read length: %d %d \n", nb, rLength)
+		header.RemainingLength = b1.Next(nb)
+
+		log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+
+		// topicLen, topicMsg := util.StringDecode(b1.Bytes())
+
+		topicLen := util.Bytes2uint16(b1.Next(2))
+		topicMsg := string(b1.Next(int(topicLen)))
+		log.Printf("Read Topic: %d  [%s] \n", topicLen, topicMsg)
+
+		log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+
+		msgMsg := string(b1.Bytes())
+		log.Printf("Read msg: [%s]\n", msgMsg)
 
 	}
 
