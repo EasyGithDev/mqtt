@@ -15,6 +15,9 @@ import (
 	"github.com/easygithdev/mqtt/packet/variableheader"
 )
 
+// Fixed size for the read buffer
+const READ_BUFFER_SISE = 1024
+
 type onConnect func(string, string, byte)
 
 // type onDisConnect func(userdata, flags, rc)
@@ -101,7 +104,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 		return false, err
 	}
 
-	log.Printf("Sender: Wrote %d byte(s)\n", n)
+	log.Printf("Wrote %d byte(s)\n", n)
 
 	response, err := mc.Read()
 	if err != nil {
@@ -171,7 +174,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 		return false, err
 	}
 
-	log.Printf("Sender: Wrote %d byte(s)\n", n)
+	log.Printf("Wrote %d byte(s)\n", n)
 
 	response, err := mc.Read()
 	if err != nil {
@@ -234,11 +237,76 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 		return false, err
 	}
 
-	log.Printf("Sender: Wrote %d byte(s)\n", n)
+	log.Printf("Wrote %d byte(s)\n", n)
 
 	// performing section for qos1 & qos 2
 
 	return true, nil
+}
+
+/**
+The PINGREQ Packet is sent from a Client to the Server. It can be used to:
+
+Indicate to the Server that the Client is alive in the absence of any other Control Packets being sent from the Client to the Server.
+Request that the Server responds to confirm that it is alive.
+Exercise the network to indicate that the Network Connection is active.
+
+This Packet is used in Keep Alive processing, see Section 3.1.2.10 for more details.
+
+The PINGREQ Packet has no variable header.
+The PINGREQ Packet has no payload.
+
+*/
+func (mc *MqttClient) Ping() (bool, error) {
+
+	// Adding connection to mc
+	_, err := mc.MqttConnect()
+
+	if err != nil {
+		return false, nil
+	}
+
+	mh := header.NewMqttHeader()
+	mh.Control = header.PINGREQ
+
+	mvh := variableheader.NewMqttVariableHeader()
+
+	mpl := payload.NewMqttPayload()
+
+	mp := packet.NewMqttPacket()
+	mp.Header = mh
+	mp.VariableHeader = mvh
+	mp.Payload = mpl
+
+	writeBuffer := mp.Encode()
+
+	log.Printf("Packet: %s\n", mc.ShowPacket(writeBuffer))
+
+	n, err := mc.conn.Write(writeBuffer)
+	if err != nil {
+		log.Printf("Write Error: %s\n", err)
+		return false, err
+	}
+
+	log.Printf("Wrote %d byte(s)\n", n)
+
+	// Read PINGRESP
+
+	readBuffer := make([]byte, READ_BUFFER_SISE)
+	n, err = mc.conn.Read(readBuffer)
+	if err != nil {
+		log.Printf("Read Error: %s\n", err)
+		return false, err
+	}
+
+	bb := bytes.NewBuffer(readBuffer[:n])
+	control, _ := bb.ReadByte()
+
+	if control == header.PINGRESP {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 // func (mc *MqttClient) Disconnect() (bool, error) {
@@ -255,7 +323,7 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 // 		return false, err
 // 	}
 
-// 	log.Printf("Sender: Wrote %d byte(s)\n", n)
+// 	log.Printf("Wrote %d byte(s)\n", n)
 
 // 	_, err = mc.Read()
 // 	if err != nil {

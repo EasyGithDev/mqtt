@@ -49,6 +49,21 @@ func main() {
 	}
 	defer mc.Disconnect()
 
+	///////////////////////////////////////////////////////////
+	// Ping
+	///////////////////////////////////////////////////////////
+
+	resp, err := mc.Ping()
+
+	if err != nil {
+		log.Print("Error ping:", err.Error())
+	}
+
+	if resp {
+		log.Print("Ping is done with success")
+
+	}
+
 	// log.Print("Connecting to " + connType + " server " + connHost + ":" + connPort)
 
 	///////////////////////////////////////////////////////////
@@ -67,14 +82,14 @@ func main() {
 	// Subscribe
 	///////////////////////////////////////////////////////////
 
-	resp, err := mc.Subscribe("/tartine/de/confiture")
-	if err != nil {
-		log.Printf("Subscribe Error: %s\n", err)
-	}
+	// resp, err := mc.Subscribe("/tartine/de/confiture")
+	// if err != nil {
+	// 	log.Printf("Subscribe Error: %s\n", err)
+	// }
 
-	if resp {
-		log.Printf("Subcribe established \n")
-		mc.ReadLoop()
-	}
+	// if resp {
+	// 	log.Printf("Subcribe established \n")
+	// 	mc.ReadLoop()
+	// }
 
 }
