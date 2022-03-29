@@ -41,7 +41,7 @@ type MqttConnectOptions struct {
 
 type MqttClient struct {
 	clientId string
-	conn     net.Conn
+	conn     *net.Conn
 	options  *MqttConnectOptions
 }
 
@@ -49,7 +49,7 @@ func NewMqttClient(clientId string) *MqttClient {
 	return &MqttClient{clientId: clientId}
 }
 
-func (mc *MqttClient) SetConn(conn net.Conn) {
+func (mc *MqttClient) SetConn(conn *net.Conn) {
 	mc.conn = conn
 }
 
@@ -64,12 +64,12 @@ func (mc *MqttClient) Connect(host string, port string) (bool, error) {
 		log.Print("Error connecting:", err.Error())
 		return false, err
 	}
-	mc.conn = conn
+	mc.conn = &conn
 	return true, nil
 }
 
 func (mc *MqttClient) Disconnect() {
-	mc.conn.Close()
+	(*mc.conn).Close()
 }
 
 func (mc *MqttClient) MqttConnect() (bool, error) {
@@ -107,7 +107,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 
 	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
 
-	n, err := mc.conn.Write(buffer)
+	n, err := (*mc.conn).Write(buffer)
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
@@ -118,7 +118,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	// Read CONNHACK
 
 	readBuffer := make([]byte, READ_BUFFER_SISE)
-	n, err = mc.conn.Read(readBuffer)
+	n, err = (*mc.conn).Read(readBuffer)
 	if err != nil {
 		log.Printf("Read Error: %s\n", err)
 		return false, err
@@ -183,7 +183,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 
 	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
 
-	n, err := mc.conn.Write(buffer)
+	n, err := (*mc.conn).Write(buffer)
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
@@ -246,7 +246,7 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 
 	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
 
-	n, err := mc.conn.Write(buffer)
+	n, err := (*mc.conn).Write(buffer)
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
@@ -297,7 +297,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 	log.Printf("Packet: %s\n", mc.ShowPacket(writeBuffer))
 
-	n, err := mc.conn.Write(writeBuffer)
+	n, err := (*mc.conn).Write(writeBuffer)
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
@@ -308,7 +308,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 	// Read PINGRESP
 
 	readBuffer := make([]byte, READ_BUFFER_SISE)
-	n, err = mc.conn.Read(readBuffer)
+	n, err = (*mc.conn).Read(readBuffer)
 	if err != nil {
 		log.Printf("Read Error: %s\n", err)
 		return false, err
@@ -332,7 +332,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 // 	buffer := mp.Encode()
 
-// 	n, err := mc.conn.Write(buffer)
+// 	n, err := (*mc.conn).Write(buffer)
 // 	if err != nil {
 // 		log.Printf("Write Error: %s\n", err)
 // 		return false, err
@@ -350,10 +350,10 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 // }
 
-func (mp *MqttClient) Read() ([]byte, error) {
+func (mc *MqttClient) Read() ([]byte, error) {
 
 	buffer := make([]byte, 100)
-	n, err := mp.conn.Read(buffer)
+	n, err := (*mc.conn).Read(buffer)
 	if err != nil {
 		return nil, err
 	}
@@ -367,7 +367,7 @@ func (mp *MqttClient) ReadLoop() {
 
 	for {
 		buffer := make([]byte, 1024)
-		n, err := mp.conn.Read(buffer)
+		n, err := (*mp.conn).Read(buffer)
 		if err != nil {
 			log.Printf("Error: %s\n", err)
 			if err == io.EOF {
