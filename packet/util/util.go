@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"encoding/binary"
+	"log"
 )
 
 func Uint162bytes(val uint16) []byte {
@@ -25,7 +26,7 @@ func StringEncode(str string) []byte {
 	return buffer.Bytes()
 }
 
-func StringDecode(b []byte) string {
+func StringDecode(b []byte) (int, string) {
 
 	buffer := bytes.NewBuffer(b)
 
@@ -35,9 +36,13 @@ func StringDecode(b []byte) string {
 	size := Bytes2uint16(buffSize)
 
 	buffStr := make([]byte, size)
-	buffer.Read(buffStr)
+	n, err := buffer.Read(buffStr)
 
-	return string(buffStr)
+	if err != nil {
+		log.Printf("String decode: %s %s \n", buffStr, err)
+	}
+
+	return n, string(buffStr[:n])
 }
 
 // func (mp *MqttPacket) computeLength(buffer []byte) uint16 {
