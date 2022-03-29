@@ -103,7 +103,7 @@ func (mh *MqttHeader) RemainingLengthEncode(x int) []byte {
 	return buffer
 }
 
-func (mh *MqttHeader) RemaingLengthDecode(x []byte) int {
+func (mh *MqttHeader) RemaingLengthDecode(x []byte) (int, int) {
 
 	var multiplier int = 1
 
@@ -111,6 +111,7 @@ func (mh *MqttHeader) RemaingLengthDecode(x []byte) int {
 
 	var encodedByte byte = 0
 
+	var nbBytes int = 0
 	for i := 0; i < len(x); i++ {
 
 		encodedByte = x[i]
@@ -123,11 +124,12 @@ func (mh *MqttHeader) RemaingLengthDecode(x []byte) int {
 
 		//    throw Error(Malformed Remaining Length)
 
-		//  if  (encodedByte & 128) == 0 {
-		// 	 break
-		//  }
+		nbBytes++
+		if (encodedByte & 128) == 0 {
+			break
+		}
 
 	}
 
-	return value
+	return nbBytes, value
 }
