@@ -37,7 +37,3 @@ func StringDecode(b []byte) (int, string) {
 
 	return 2 + len(buffStr), string(buffStr)
 }
-
-// func (mp *MqttPacket) computeLength(buffer []byte) uint16 {
-// 	return uint16(len(buffer))
-// }

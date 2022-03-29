@@ -66,33 +66,37 @@ func main() {
 	// log.Print("Connecting to " + connType + " server " + connHost + ":" + connPort)
 
 	///////////////////////////////////////////////////////////
-	// Publish
+	// Options for using username&password
 	///////////////////////////////////////////////////////////
 
 	mc.SetOptions(&client.MqttConnectOptions{Login: "aa", Password: "bb"})
 
-	pubResp, pubErr := mc.Publish("/hello/world", "this is my hello world")
+	///////////////////////////////////////////////////////////
+	// Publish
+	///////////////////////////////////////////////////////////
 
-	if pubErr != nil {
-		log.Print("Error publishing:", pubErr.Error())
-	}
+	// pubResp, pubErr := mc.Publish("/hello/world", "this is my hello world")
 
-	if pubResp {
-		log.Print("Publish is done with success")
-	}
+	// if pubErr != nil {
+	// 	log.Print("Error publishing:", pubErr.Error())
+	// }
+
+	// if pubResp {
+	// 	log.Print("Publish is done with success")
+	// }
 
 	///////////////////////////////////////////////////////////
 	// Subscribe
 	///////////////////////////////////////////////////////////
 
-	// resp, err := mc.Subscribe("/tartine/de/confiture")
-	// if err != nil {
-	// 	log.Printf("Subscribe Error: %s\n", err)
-	// }
+	respSub, errSub := mc.Subscribe("/tartine/de/confiture")
+	if errSub != nil {
+		log.Printf("Subscribe Error: %s\n", errSub)
+	}
 
-	// if resp {
-	// 	log.Printf("Subcribe established \n")
-	// 	mc.ReadLoop()
-	// }
+	if respSub {
+		log.Printf("Subcribe established \n")
+		mc.ReadLoop()
+	}
 
 }

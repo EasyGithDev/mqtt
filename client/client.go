@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
+	"math/rand"
 	"net"
 
 	"github.com/easygithdev/mqtt/packet"
@@ -151,6 +153,8 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	return false, nil
 }
 
+// The SUBSCRIBE Packet is sent from the Client to the Server to create one or more Subscriptions.
+// Each Subscription registers a Client’s interest in one or more Topics. The Server sends PUBLISH Packets to the Client in order to forward Application Messages that were published to Topics that match these Subscriptions. The SUBSCRIBE Packet also specifies (for each Subscription) the maximum QoS with which the Server can send Application Messages to the Client.
 func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 
 	// Adding connection to mc
@@ -161,10 +165,12 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	}
 
 	mh := header.NewMqttHeader()
+	// Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and MUST be set to 0,0,1 and 0 respectively.
 	mh.Control = header.SUBSCRIBE | 1<<1
 
-	//ugly stuff
-	var packetId uint16 = 33
+	//The variable header component of many of the Control Packet types includes a 2 byte Packet Identifier field.
+	//These Control Packets are PUBLISH (where QoS > 0), PUBACK, PUBREC, PUBREL, PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK.
+	var packetId uint16 = uint16(rand.Intn(math.MaxInt16))
 
 	mvh := variableheader.NewMqttVariableHeader()
 	mvh.BuildSubscribe(packetId, topic)
@@ -189,17 +195,19 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 
 	log.Printf("Wrote %d byte(s)\n", n)
 
-	response, err := mc.Read()
-	if err != nil {
-		log.Printf("Read Error: %s\n", err)
-		return false, err
+	// Read SUBACK
+
+	readBuffer := make([]byte, READ_BUFFER_SISE)
+	n, readErr := (*mc.conn).Read(readBuffer)
+	if readErr != nil {
+		log.Printf("Read Error: %s\n", readErr)
+		return false, readErr
 	}
 
-	fmt.Println(response)
+	bb := bytes.NewBuffer(readBuffer[:n])
+	control, _ := bb.ReadByte()
 
-	log.Printf("Packet: %s\n", mc.ShowPacket(response))
-
-	if response[0] == header.SUBACK {
+	if control == header.SUBACK {
 		return true, nil
 	}
 
@@ -347,19 +355,6 @@ func (mc *MqttClient) Ping() (bool, error) {
 // 	return true, nil
 
 // }
-
-func (mc *MqttClient) Read() ([]byte, error) {
-
-	buffer := make([]byte, 100)
-	n, err := (*mc.conn).Read(buffer)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Printf("Read: %d byte(s)\n", n)
-
-	return buffer[:n+1], nil
-}
 
 func (mp *MqttClient) ReadLoop() {
 
