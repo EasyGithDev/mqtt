@@ -34,6 +34,15 @@ func (mp *MqttPayload) AddQos(qos byte) {
 	mp.Payload = append(mp.Payload, []byte{0}...)
 }
 
-func (mp *MqttPayload) ShowMessage() string {
-	return util.StringDecode(mp.Payload)
+func (mp *MqttPayload) ShowMessage(start int, end int) string {
+	str := ""
+	buffer := mp.Payload[start:end]
+	len := len(buffer)
+	for len > 0 {
+		n, s := util.StringDecode(buffer[:len])
+		str += s
+		len -= n
+	}
+
+	return str
 }
