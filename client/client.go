@@ -18,6 +18,15 @@ import (
 // Fixed size for the read buffer
 const READ_BUFFER_SISE = 1024
 
+// Default name for connect in variable Header
+var PROTOCOL_NAME string = "MQTT"
+
+// Default level for connect in variable Header
+var PROTOCOL_LEVEL byte = 4
+
+// Default timeout for connect in variable Header
+var TIME_OUT uint16 = 60
+
 type onConnect func(string, string, byte)
 
 // type onDisConnect func(userdata, flags, rc)
@@ -69,7 +78,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	mh.Control = header.CONNECT
 
 	mvh := variableheader.NewMqttVariableHeader()
-	mvh.BuildConnect("MQTT", 4, variableheader.CONNECT_FLAG_CLEAN_SESSION, 60)
+	mvh.BuildConnect(PROTOCOL_NAME, PROTOCOL_LEVEL, variableheader.CONNECT_FLAG_CLEAN_SESSION, TIME_OUT)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(mc.clientId)
@@ -100,25 +109,31 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 
 	n, err := mc.conn.Write(buffer)
 	if err != nil {
-		log.Printf("Sender: Write Error: %s\n", err)
+		log.Printf("Write Error: %s\n", err)
 		return false, err
 	}
 
 	log.Printf("Wrote %d byte(s)\n", n)
 
-	response, err := mc.Read()
+	// Read CONNHACK
+
+	readBuffer := make([]byte, READ_BUFFER_SISE)
+	n, err = mc.conn.Read(readBuffer)
 	if err != nil {
 		log.Printf("Read Error: %s\n", err)
 		return false, err
 	}
 
-	// myPacket := mp.GetPacket(response)
+	bb := bytes.NewBuffer(readBuffer[:n])
+	control, _ := bb.ReadByte()
 
-	//	log.Printf("Packet: %s\n", mc.ShowPacket(myPacket))
+	if control == header.CONNACK {
 
-	if response[0] == header.CONNACK {
+		bb.Next(2)
 
-		switch response[3] {
+		accepted, _ := bb.ReadByte()
+
+		switch accepted {
 		case header.CONNECT_ACCEPTED:
 			return true, nil
 		case header.CONNECT_REFUSED_1:
@@ -170,7 +185,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 
 	n, err := mc.conn.Write(buffer)
 	if err != nil {
-		log.Printf("Sender: Write Error: %s\n", err)
+		log.Printf("Write Error: %s\n", err)
 		return false, err
 	}
 
@@ -233,7 +248,7 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 
 	n, err := mc.conn.Write(buffer)
 	if err != nil {
-		log.Printf("Sender: Write Error: %s\n", err)
+		log.Printf("Write Error: %s\n", err)
 		return false, err
 	}
 
@@ -319,7 +334,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 // 	n, err := mc.conn.Write(buffer)
 // 	if err != nil {
-// 		log.Printf("Sender: Write Error: %s\n", err)
+// 		log.Printf("Write Error: %s\n", err)
 // 		return false, err
 // 	}
 

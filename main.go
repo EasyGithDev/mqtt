@@ -53,16 +53,15 @@ func main() {
 	// Ping
 	///////////////////////////////////////////////////////////
 
-	resp, err := mc.Ping()
+	// resp, err := mc.Ping()
 
-	if err != nil {
-		log.Print("Error ping:", err.Error())
-	}
+	// if err != nil {
+	// 	log.Print("Error ping:", err.Error())
+	// }
 
-	if resp {
-		log.Print("Ping is done with success")
-
-	}
+	// if resp {
+	// 	log.Print("Ping is done with success")
+	// }
 
 	// log.Print("Connecting to " + connType + " server " + connHost + ":" + connPort)
 
@@ -72,11 +71,15 @@ func main() {
 
 	// mc.SetOptions(&client.MqttConnectOptions{Login: "aa", Password: "bb"})
 
-	// _, err = mc.Publish("/hello/world", "this is my hello world")
+	resp, err := mc.Publish("/hello/world", "this is my hello world")
 
-	// if err != nil {
-	// 	log.Print("Error publishing:", err.Error())
-	// }
+	if err != nil {
+		log.Print("Error publishing:", err.Error())
+	}
+
+	if resp {
+		log.Print("Publish is done with success")
+	}
 
 	///////////////////////////////////////////////////////////
 	// Subscribe
