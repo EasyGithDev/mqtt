@@ -42,9 +42,9 @@ func main() {
 	///////////////////////////////////////////////////////////
 	mc := client.NewMqttClient("go-lang-mqtt")
 
-	_, err := mc.Connect(connHost, connPort)
-	if err != nil {
-		log.Print("Error connecting:", err.Error())
+	_, connErr := mc.Connect(connHost, connPort)
+	if connErr != nil {
+		log.Print("Error connecting:", connErr.Error())
 		os.Exit(1)
 	}
 	defer mc.Disconnect()
@@ -69,15 +69,15 @@ func main() {
 	// Publish
 	///////////////////////////////////////////////////////////
 
-	// mc.SetOptions(&client.MqttConnectOptions{Login: "aa", Password: "bb"})
+	mc.SetOptions(&client.MqttConnectOptions{Login: "aa", Password: "bb"})
 
-	resp, err := mc.Publish("/hello/world", "this is my hello world")
+	pubResp, pubErr := mc.Publish("/hello/world", "this is my hello world")
 
-	if err != nil {
-		log.Print("Error publishing:", err.Error())
+	if pubErr != nil {
+		log.Print("Error publishing:", pubErr.Error())
 	}
 
-	if resp {
+	if pubResp {
 		log.Print("Publish is done with success")
 	}
 

@@ -78,30 +78,27 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	mh.Control = header.CONNECT
 
 	mvh := variableheader.NewMqttVariableHeader()
-	mvh.BuildConnect(PROTOCOL_NAME, PROTOCOL_LEVEL, variableheader.CONNECT_FLAG_CLEAN_SESSION, TIME_OUT)
+
+	var connectFlag byte = variableheader.CONNECT_FLAG_CLEAN_SESSION
+	if mc.options != nil {
+		connectFlag |= variableheader.CONNECT_FLAG_USERNAME | variableheader.CONNECT_FLAG_PASSWORD
+	}
+
+	mvh.BuildConnect(PROTOCOL_NAME, PROTOCOL_LEVEL, connectFlag, TIME_OUT)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(mc.clientId)
+
+	if mc.options != nil {
+		// mp.Header.Control = mp.Header.Control | (0x01 << 7) | (0x01 << 6)
+		mpl.AddString(mc.options.Login)
+		mpl.AddString(mc.options.Password)
+	}
 
 	mp := packet.NewMqttPacket()
 	mp.Header = mh
 	mp.VariableHeader = mvh
 	mp.Payload = mpl
-
-	// log.Printf("Payload: %s .................................\n", string(mp.Payload))
-
-	if mc.options != nil {
-
-		//mvh.ConnectFlag = variableheader.CONNECT_FLAG_CLEAN_SESSION | variableheader.CONNECT_FLAG_USERNAME | variableheader.CONNECT_FLAG_PASSWORD
-
-		mp.Header.Control = mp.Header.Control | (0x01 << 7) | (0x01 << 6)
-		mp.Payload.AddString(mc.options.Login)
-		mp.Payload.AddString(mc.options.Password)
-	}
-
-	// log.Printf("Payload: %s .................................\n", string(mp.Payload))
-
-	// log.Printf("Sending command: 0x%x \n", mp.Control)
 
 	buffer := mp.Encode()
 
@@ -118,10 +115,10 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	// Read CONNHACK
 
 	readBuffer := make([]byte, READ_BUFFER_SISE)
-	n, err = (*mc.conn).Read(readBuffer)
-	if err != nil {
-		log.Printf("Read Error: %s\n", err)
-		return false, err
+	n, readErr := (*mc.conn).Read(readBuffer)
+	if readErr != nil {
+		log.Printf("Read Error: %s\n", readErr)
+		return false, readErr
 	}
 
 	bb := bytes.NewBuffer(readBuffer[:n])
@@ -166,6 +163,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	mh := header.NewMqttHeader()
 	mh.Control = header.SUBSCRIBE | 1<<1
 
+	//ugly stuff
 	var packetId uint16 = 33
 
 	mvh := variableheader.NewMqttVariableHeader()
