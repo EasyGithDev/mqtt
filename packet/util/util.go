@@ -24,6 +24,7 @@ package util
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 )
 
 func Uint162bytes(val uint16) []byte {
@@ -57,4 +58,14 @@ func StringDecode(b []byte) (int, string) {
 	buffStr := buffer.Next(int(size))
 
 	return 2 + len(buffStr), string(buffStr)
+}
+
+func ShowHexa(buffer []byte) string {
+	str := ""
+	for i := 0; i < len(buffer); i++ {
+		str += fmt.Sprintf("0x%X ", buffer[i])
+	}
+	str += "\n"
+
+	return str
 }

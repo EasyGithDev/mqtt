@@ -24,7 +24,6 @@ package client
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"math"
@@ -137,7 +136,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 
 	buffer := mp.Encode()
 
-	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
+	log.Printf("Packet: %s\n", util.ShowHexa(buffer))
 
 	n, err := (*mc.conn).Write(buffer)
 	if err != nil {
@@ -221,7 +220,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 
 	buffer := mp.Encode()
 
-	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
+	log.Printf("Packet: %s\n", util.ShowHexa(buffer))
 
 	n, err := (*mc.conn).Write(buffer)
 	if err != nil {
@@ -289,7 +288,7 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 
 	buffer := mp.Encode()
 
-	// log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
+	// log.Printf("Packet: %s\n", mc.ShowHexa(buffer))
 
 	n, err := (*mc.conn).Write(buffer)
 	if err != nil {
@@ -344,7 +343,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 	writeBuffer := mp.Encode()
 
-	log.Printf("Packet: %s\n", mc.ShowPacket(writeBuffer))
+	log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
 
 	n, err := (*mc.conn).Write(writeBuffer)
 	if err != nil {
@@ -446,14 +445,4 @@ func (mc *MqttClient) ReadLoop() {
 
 	}
 
-}
-
-func (mp *MqttClient) ShowPacket(buffer []byte) string {
-	str := ""
-	for i := 0; i < len(buffer); i++ {
-		str += fmt.Sprintf("0x%X ", buffer[i])
-	}
-	str += "\n"
-
-	return str
 }
