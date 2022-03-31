@@ -22,29 +22,24 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"os"
 
 	"github.com/easygithdev/mqtt/client"
 )
 
 const (
-	// connHost = "localhost"
-	// connPort = "8080"
-	// connType = "tcp"
 
 	// connHost = "test.mosquitto.org"
 	connHost = "mqtt.eclipseprojects.io"
 
 	connPort = "1883"
 	// connPort = "1884"
-	connType = "tcp"
 
-	DELIMITER byte = '\n'
-	QUIT_SIGN      = "quit!"
-
-	DEBUG = true
+	DEBUG = false
 )
 
 func init() {
@@ -56,19 +51,49 @@ func init() {
 
 }
 
+var onTcpConnect = func(conn net.Conn) {
+	fmt.Println("Connecting to server " + conn.RemoteAddr().String())
+}
+
+var onTcpDisconnect = func() {
+	fmt.Println("Disconnect from server")
+}
+
+var onConnect = func() {
+	fmt.Println("Connecting to MQTT server ...")
+}
+
+var onPublish = func() {
+	fmt.Println("Publish ")
+}
+
+var onSubscribe = func() {
+	fmt.Println("Subscribed ...")
+}
+
+var onMessage = func(message string) {
+	fmt.Println("Message: " + message)
+}
+
 func main() {
 
 	///////////////////////////////////////////////////////////
 	// Connect
 	///////////////////////////////////////////////////////////
 	mc := client.NewMqttClient("go-lang-mqtt")
+	mc.OnTcpConnect = onTcpConnect
+	mc.OnTcpDisconnect = onTcpDisconnect
+	mc.OnConnect = onConnect
+	mc.OnPublish = onPublish
+	mc.OnSubscribe = onSubscribe
+	mc.OnMessage = onMessage
 
-	_, connErr := mc.Connect(connHost, connPort)
+	_, connErr := mc.TcpConnect(connHost, connPort)
 	if connErr != nil {
 		log.Print("Error connecting:", connErr.Error())
 		os.Exit(1)
 	}
-	defer mc.Disconnect()
+	defer mc.TcpDisconnect()
 
 	///////////////////////////////////////////////////////////
 	// Ping

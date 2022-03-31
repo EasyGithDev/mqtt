@@ -38,6 +38,9 @@ import (
 	"github.com/easygithdev/mqtt/packet/variableheader"
 )
 
+// Fixed connection type
+const CONN_TYPE = "tcp"
+
 // Fixed size for the read buffer
 const READ_BUFFER_SISE = 1024
 
@@ -50,12 +53,6 @@ var PROTOCOL_LEVEL byte = 4
 // Default timeout for connect in variable Header
 var TIME_OUT uint16 = 60
 
-type onConnect func(string, string, byte)
-
-// type onDisConnect func(userdata, flags, rc)
-
-// type onMessage func(userdata, message)
-
 type MqttConnectOptions struct {
 	Login    string
 	Password string
@@ -63,9 +60,15 @@ type MqttConnectOptions struct {
 }
 
 type MqttClient struct {
-	clientId string
-	conn     *net.Conn
-	options  *MqttConnectOptions
+	clientId        string
+	conn            *net.Conn
+	options         *MqttConnectOptions
+	OnTcpConnect    func(conn net.Conn)
+	OnTcpDisconnect func()
+	OnConnect       func()
+	OnPublish       func()
+	OnSubscribe     func()
+	OnMessage       func(messgage string)
 }
 
 func NewMqttClient(clientId string) *MqttClient {
@@ -80,19 +83,28 @@ func (mc *MqttClient) SetOptions(options *MqttConnectOptions) {
 	mc.options = options
 }
 
-func (mc *MqttClient) Connect(host string, port string) (bool, error) {
-	conn, err := net.Dial("tcp", host+":"+port)
+func (mc *MqttClient) TcpConnect(host string, port string) (bool, error) {
+	conn, err := net.Dial(CONN_TYPE, host+":"+port)
 
 	if err != nil {
 		log.Print("Error connecting:", err.Error())
 		return false, err
 	}
 	mc.conn = &conn
+
+	if mc.OnTcpConnect != nil {
+		mc.OnTcpConnect(conn)
+	}
+
 	return true, nil
 }
 
-func (mc *MqttClient) Disconnect() {
+func (mc *MqttClient) TcpDisconnect() {
 	(*mc.conn).Close()
+
+	if mc.OnTcpConnect != nil {
+		mc.OnTcpDisconnect()
+	}
 }
 
 func (mc *MqttClient) MqttConnect() (bool, error) {
@@ -155,6 +167,9 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 
 		switch accepted {
 		case header.CONNECT_ACCEPTED:
+			if mc.OnConnect != nil {
+				mc.OnConnect()
+			}
 			return true, nil
 		case header.CONNECT_REFUSED_1:
 			return false, errors.New("connection Refused, unacceptable protocol version")
@@ -229,6 +244,9 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	control, _ := bb.ReadByte()
 
 	if control == header.SUBACK {
+		if mc.OnSubscribe != nil {
+			mc.OnSubscribe()
+		}
 		return true, nil
 	}
 
@@ -271,7 +289,7 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 
 	buffer := mp.Encode()
 
-	log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
+	// log.Printf("Packet: %s\n", mc.ShowPacket(buffer))
 
 	n, err := (*mc.conn).Write(buffer)
 	if err != nil {
@@ -280,6 +298,10 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 	}
 
 	log.Printf("Wrote %d byte(s)\n", n)
+
+	if mc.OnPublish != nil {
+		mc.OnPublish()
+	}
 
 	// performing section for qos1 & qos 2
 
@@ -377,11 +399,11 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 // }
 
-func (mp *MqttClient) ReadLoop() {
+func (mc *MqttClient) ReadLoop() {
 
 	for {
 		buffer := make([]byte, 1024)
-		n, err := (*mp.conn).Read(buffer)
+		n, err := (*mc.conn).Read(buffer)
 		if err != nil {
 			log.Printf("Error: %s\n", err)
 			if err == io.EOF {
@@ -389,36 +411,38 @@ func (mp *MqttClient) ReadLoop() {
 			}
 		}
 
-		//	res := append([]byte(nil), buffer[:n]...)
-		// b1 := bytes.NewBuffer(buffer[:n])
-		// fmt.Println(b1)
-
-		log.Printf("Read: %d byte(s)\n", n)
+		// log.Printf("Read: %d byte(s)\n", n)
 
 		b1 := bytes.NewBuffer(buffer[:n])
-		log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
 		header := header.NewMqttHeader()
 		header.Control, _ = b1.ReadByte()
 
-		log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
-		nb, rLength := header.RemaingLengthDecode(b1.Bytes())
-		log.Printf("Read length: %d %d \n", nb, rLength)
+		nb, _ := header.RemaingLengthDecode(b1.Bytes())
+		// log.Printf("Read length: %d %d \n", nb, rLength)
 		header.RemainingLength = b1.Next(nb)
 
-		log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
 		// topicLen, topicMsg := util.StringDecode(b1.Bytes())
 
 		topicLen := util.Bytes2uint16(b1.Next(2))
-		topicMsg := string(b1.Next(int(topicLen)))
-		log.Printf("Read Topic: %d  [%s] \n", topicLen, topicMsg)
+		b1.Next(int(topicLen))
 
-		log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+		// topicMsg := string(b1.Next(int(topicLen)))
+		// log.Printf("Read Topic: %d  [%s] \n", topicLen, topicMsg)
+
+		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
 		msgMsg := string(b1.Bytes())
-		log.Printf("Read msg: [%s]\n", msgMsg)
+		// log.Printf("Read msg: [%s]\n", msgMsg)
+
+		if mc.OnMessage != nil {
+			mc.OnMessage(msgMsg)
+		}
 
 	}
 
