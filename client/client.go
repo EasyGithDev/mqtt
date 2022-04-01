@@ -35,7 +35,7 @@ import (
 	"github.com/easygithdev/mqtt/packet/header"
 	"github.com/easygithdev/mqtt/packet/payload"
 	"github.com/easygithdev/mqtt/packet/util"
-	"github.com/easygithdev/mqtt/packet/variableheader"
+	"github.com/easygithdev/mqtt/packet/vheader"
 )
 
 // Fixed connection type
@@ -118,12 +118,12 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	mh := header.NewMqttHeader()
 	mh.Control = header.CONNECT
 
-	var connectFlag byte = variableheader.CONNECT_FLAG_CLEAN_SESSION
+	var connectFlag byte = vheader.CONNECT_FLAG_CLEAN_SESSION
 	if mc.options != nil {
-		connectFlag |= variableheader.CONNECT_FLAG_USERNAME | variableheader.CONNECT_FLAG_PASSWORD
+		connectFlag |= vheader.CONNECT_FLAG_USERNAME | vheader.CONNECT_FLAG_PASSWORD
 	}
 
-	mvh := variableheader.NewConnectHeader(PROTOCOL_NAME, PROTOCOL_LEVEL, connectFlag, TIME_OUT)
+	mvh := vheader.NewConnectHeader(PROTOCOL_NAME, PROTOCOL_LEVEL, connectFlag, TIME_OUT)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(mc.clientId)
@@ -213,7 +213,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	//These Control Packets are PUBLISH (where QoS > 0), PUBACK, PUBREC, PUBREL, PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK.
 	var packetId uint16 = uint16(rand.Intn(math.MaxInt16))
 
-	mvh := variableheader.NewSubscribeHeader(packetId, topic)
+	mvh := vheader.NewSubscribeHeader(packetId, topic)
 	// mvh.BuildSubscribe(packetId, topic)
 
 	mpl := payload.NewMqttPayload()
@@ -281,7 +281,7 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 	mh := header.NewMqttHeader()
 	mh.Control = header.PUBLISH
 
-	mvh := variableheader.NewPublishHeader(topic)
+	mvh := vheader.NewPublishHeader(topic)
 	// mvh.BuildPublish(topic)
 
 	mpl := payload.NewMqttPayload()
@@ -339,7 +339,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 	mh.Control = header.PINGREQ
 
 	// mvh := variableheader.NewMqttVariableHeader()
-	mvh := variableheader.NewEmptyHeader()
+	mvh := vheader.NewEmptyHeader()
 
 	mpl := payload.NewMqttPayload()
 

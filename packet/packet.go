@@ -26,12 +26,12 @@ import (
 
 	"github.com/easygithdev/mqtt/packet/header"
 	"github.com/easygithdev/mqtt/packet/payload"
-	"github.com/easygithdev/mqtt/packet/variableheader"
+	"github.com/easygithdev/mqtt/packet/vheader"
 )
 
 type MqttPacket struct {
 	Header         *header.MqttHeader
-	VariableHeader variableheader.VariableHeader
+	VariableHeader vheader.VariableHeader
 	Payload        *payload.MqttPayload
 }
 
@@ -45,13 +45,12 @@ func (mp *MqttPacket) Encode() []byte {
 
 	var mqttBuffer bytes.Buffer
 
-	// mp.VariableHeader.ComputeProtocolLength()
-	mp.Header.ComputeRemainingLength(variableheader.Len(mp.VariableHeader) + mp.Payload.Len())
+	mp.Header.ComputeRemainingLength(vheader.Len(mp.VariableHeader) + mp.Payload.Len())
 
 	mqttBuffer.Write(mp.Header.Encode())
 
-	if variableheader.Len(mp.VariableHeader) > 0 {
-		mqttBuffer.Write(variableheader.Encode(mp.VariableHeader))
+	if vheader.Len(mp.VariableHeader) > 0 {
+		mqttBuffer.Write(vheader.Encode(mp.VariableHeader))
 	}
 
 	if mp.Payload.Len() > 0 {
