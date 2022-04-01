@@ -25,14 +25,33 @@ import (
 	"bytes"
 
 	"github.com/easygithdev/mqtt/packet/header"
-	"github.com/easygithdev/mqtt/packet/payload"
-	"github.com/easygithdev/mqtt/packet/vheader"
 )
+
+/////////////////////////////////////////////////
+// Interface PacketContent
+/////////////////////////////////////////////////
+
+type PaquetContent interface {
+	Encode() []byte
+	Len() int
+}
+
+func Encode(header PaquetContent) []byte {
+	return header.Encode()
+}
+
+func Len(header PaquetContent) int {
+	return header.Len()
+}
+
+/////////////////////////////////////////////////
+// MqttPacket
+/////////////////////////////////////////////////
 
 type MqttPacket struct {
 	Header         *header.MqttHeader
-	VariableHeader vheader.VariableHeader
-	Payload        *payload.MqttPayload
+	VariableHeader PaquetContent
+	Payload        PaquetContent
 }
 
 func NewMqttPacket() *MqttPacket {
@@ -45,16 +64,16 @@ func (mp *MqttPacket) Encode() []byte {
 
 	var mqttBuffer bytes.Buffer
 
-	mp.Header.ComputeRemainingLength(vheader.Len(mp.VariableHeader) + mp.Payload.Len())
+	mp.Header.ComputeRemainingLength(PaquetContent.Len(mp.VariableHeader) + PaquetContent.Len(mp.Payload))
 
 	mqttBuffer.Write(mp.Header.Encode())
 
-	if vheader.Len(mp.VariableHeader) > 0 {
-		mqttBuffer.Write(vheader.Encode(mp.VariableHeader))
+	if PaquetContent.Len(mp.VariableHeader) > 0 {
+		mqttBuffer.Write(PaquetContent.Encode(mp.VariableHeader))
 	}
 
-	if mp.Payload.Len() > 0 {
-		mqttBuffer.Write(mp.Payload.Encode())
+	if PaquetContent.Len(mp.Payload) > 0 {
+		mqttBuffer.Write(PaquetContent.Encode(mp.Payload))
 	}
 
 	return mqttBuffer.Bytes()
@@ -73,21 +92,3 @@ func (mp *MqttPacket) Decode(data []byte) {
 	}
 
 }
-
-// func (mp *MqttPacket) ShowBytes() string {
-
-// 	str := ""
-// 	for i := 0; i < len(buffer); i++ {
-// 		str += fmt.Sprintf("0x%X ", buffer[i])
-// 	}
-// 	str += "\n"
-
-// 	return str
-// }
-
-// func (mp *MqttPacket) GetPacket(buffer []byte) []byte {
-// 	mp.Control = buffer[0]
-// 	size := mp.RemaingLengthDecode(buffer[1:2])
-
-// 	return buffer[:size+2]
-// }

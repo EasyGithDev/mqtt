@@ -34,23 +34,6 @@ var CONNECT_FLAG_PASSWORD byte = 0x40
 var CONNECT_FLAG_USERNAME byte = 0x80
 
 /////////////////////////////////////////////////
-// Interface header
-/////////////////////////////////////////////////
-
-type VariableHeader interface {
-	Encode() []byte
-	Len() int
-}
-
-func Encode(header VariableHeader) []byte {
-	return header.Encode()
-}
-
-func Len(header VariableHeader) int {
-	return header.Len()
-}
-
-/////////////////////////////////////////////////
 // Empty header
 /////////////////////////////////////////////////
 

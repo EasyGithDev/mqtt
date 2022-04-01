@@ -22,17 +22,19 @@
 package payload
 
 import (
+	"bytes"
+	"fmt"
+
 	"github.com/easygithdev/mqtt/packet/util"
 )
 
 type MqttPayload struct {
-	// Length	(2 bytes)
-	// length of payload
-	// Length uint16
 
 	// Payload
-	Payload []byte
-	// Payload string
+	Payload []string
+
+	// Qos
+	Qos *byte
 }
 
 func NewMqttPayload() *MqttPayload {
@@ -40,29 +42,39 @@ func NewMqttPayload() *MqttPayload {
 }
 
 func (mp *MqttPayload) Encode() []byte {
-	return mp.Payload
+	buffer := bytes.NewBuffer([]byte{})
+	for _, v := range mp.Payload {
+		buffer.Write(util.StringEncode(v))
+	}
+
+	if mp.Qos != nil {
+		buffer.WriteByte(*mp.Qos)
+	}
+
+	return buffer.Bytes()
 }
 
 func (mp *MqttPayload) Len() int {
-	return len(mp.Payload)
+	return len(mp.Encode())
 }
 
 func (mp *MqttPayload) AddString(str string) {
-	mp.Payload = append(mp.Payload, util.StringEncode(str)...)
+	mp.Payload = append(mp.Payload, str)
 }
 
 func (mp *MqttPayload) AddQos(qos byte) {
-	mp.Payload = append(mp.Payload, []byte{0}...)
+	mp.Qos = new(byte)
+	*mp.Qos = qos
 }
 
-func (mp *MqttPayload) ShowMessage(start int, end int) string {
+func (mp *MqttPayload) String() string {
 	str := ""
-	buffer := mp.Payload[start:end]
-	len := len(buffer)
-	for len > 0 {
-		n, s := util.StringDecode(buffer[:len])
-		str += s
-		len -= n
+	for _, v := range mp.Payload {
+		str += v
+	}
+
+	if mp.Qos != nil {
+		str += fmt.Sprintf("0x%x", mp.Qos)
 	}
 
 	return str
