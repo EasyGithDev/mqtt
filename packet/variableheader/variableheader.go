@@ -33,68 +33,193 @@ var CONNECT_FLAG_WILL_RETAIN byte = 0x20
 var CONNECT_FLAG_PASSWORD byte = 0x40
 var CONNECT_FLAG_USERNAME byte = 0x80
 
-type MqttVariableHeader struct {
-	// Length of protocol name (expl MQTT4 -> 4)
-	// ProtocolLength uint16
+/////////////////////////////////////////////////
+// Interface header
+/////////////////////////////////////////////////
 
-	// Protocol + version (expl MQTT4)
-	// ProtocolName    string
-	// ProtocolVersion byte
+type VariableHeader interface {
+	Encode() []byte
+	Len() int
+}
+
+func Encode(header VariableHeader) []byte {
+	return header.Encode()
+}
+
+func Len(header VariableHeader) int {
+	return header.Len()
+}
+
+/////////////////////////////////////////////////
+// Empty header
+/////////////////////////////////////////////////
+
+type EmptyHeader struct {
+}
+
+func NewEmptyHeader() *EmptyHeader {
+	return &EmptyHeader{}
+}
+
+func (eh *EmptyHeader) Encode() []byte {
+	return nil
+}
+
+func (eh *EmptyHeader) Len() int {
+	return 0
+}
+
+/////////////////////////////////////////////////
+// Connect header
+/////////////////////////////////////////////////
+
+type ConnectHeader struct {
+
+	// Protocol (expl MQTT)
+	ProtocolName string
+
+	// Protocol level (expl 4)
+	ProtocolVersion byte
 
 	// Connect flag (expl clean session)
-	// ConnectFlag byte
+	Flag byte
 
 	// Keep alive (2 bytes)
-	// KeepAlive uint16
-
-	content []byte
+	KeepAlive uint16
 }
 
-func NewMqttVariableHeader() *MqttVariableHeader {
-	return &MqttVariableHeader{}
+func NewConnectHeader(protocolName string, protocolVersion byte, flag byte, keepAlive uint16) *ConnectHeader {
+	return &ConnectHeader{ProtocolName: protocolName, ProtocolVersion: protocolVersion, Flag: flag, KeepAlive: keepAlive}
 }
 
-// 10 bytes = 2 (protocol length) + 4 (protocol name) + 1 (protocol version) + 1 (connect flag) + 2 (keep alive)
-func (mvh *MqttVariableHeader) BuildConnect(protocolName string, protocolVersion byte, flag byte, keepalive uint16) {
+func (ch *ConnectHeader) Encode() []byte {
+	var content []byte
 
-	mvh.content = append(mvh.content, util.StringEncode(protocolName)...)
-	mvh.content = append(mvh.content, []byte{protocolVersion}...)
-	mvh.content = append(mvh.content, []byte{flag}...)
-	mvh.content = append(mvh.content, util.Uint162bytes(keepalive)...)
+	content = append(content, util.StringEncode(ch.ProtocolName)...)
+	content = append(content, []byte{ch.ProtocolVersion}...)
+	content = append(content, []byte{ch.Flag}...)
+	content = append(content, util.Uint162bytes(ch.KeepAlive)...)
 
+	return content
 }
 
-func (mvh *MqttVariableHeader) BuildPublish(topicName string) {
-
-	mvh.content = append(mvh.content, util.StringEncode(topicName)...)
+func (ch *ConnectHeader) Len() int {
+	return len(ch.Encode())
 }
 
-func (mvh *MqttVariableHeader) BuildSubscribe(packetId uint16, topicName string) {
+/////////////////////////////////////////////////
+// Subscribe header
+/////////////////////////////////////////////////
 
-	mvh.content = append(mvh.content, util.Uint162bytes(packetId)...)
-	mvh.content = append(mvh.content, util.StringEncode(topicName)...)
+type SubscribeHeader struct {
+	TopicName string
+	PacketId  uint16
 }
 
-func (mvh *MqttVariableHeader) Encode() []byte {
-	// var buffer bytes.Buffer
-
-	// buf := util.Uint162bytes(mvh.ProtocolLength)
-	// buffer.Write(buf)
-
-	// buffer.WriteString(mvh.ProtocolName)
-
-	// buffer.WriteByte(mvh.ProtocolVersion)
-
-	// buffer.WriteByte(mvh.ConnectFlag)
-
-	// buf = util.Uint162bytes(mvh.KeepAlive)
-	// buffer.Write(buf)
-
-	// return buffer.Bytes()
-
-	return mvh.content
+func NewSubscribeHeader(packetId uint16, topicName string) *SubscribeHeader {
+	return &SubscribeHeader{PacketId: packetId, TopicName: topicName}
 }
 
-func (mvh *MqttVariableHeader) Len() int {
-	return len(mvh.content)
+func (sh *SubscribeHeader) Encode() []byte {
+	var content []byte
+
+	content = append(content, util.Uint162bytes(sh.PacketId)...)
+	content = append(content, util.StringEncode(sh.TopicName)...)
+
+	return content
 }
+
+func (sh *SubscribeHeader) Len() int {
+	return len(sh.Encode())
+}
+
+/////////////////////////////////////////////////
+// Publish header
+/////////////////////////////////////////////////
+
+type PublishHeader struct {
+	TopicName string
+}
+
+func NewPublishHeader(topicName string) *PublishHeader {
+	return &PublishHeader{TopicName: topicName}
+}
+
+func (ph *PublishHeader) Encode() []byte {
+
+	var content []byte
+
+	content = append(content, util.StringEncode(ph.TopicName)...)
+
+	return content
+}
+
+func (ph *PublishHeader) Len() int {
+	return len(ph.Encode())
+}
+
+// type MqttVariableHeader struct {
+// 	// Length of protocol name (expl MQTT4 -> 4)
+// 	// ProtocolLength uint16
+
+// 	// Protocol + version (expl MQTT4)
+// 	// ProtocolName    string
+// 	// ProtocolVersion byte
+
+// 	// Connect flag (expl clean session)
+// 	// ConnectFlag byte
+
+// 	// Keep alive (2 bytes)
+// 	// KeepAlive uint16
+
+// 	content []byte
+// }
+
+// func NewMqttVariableHeader() *MqttVariableHeader {
+// 	return &MqttVariableHeader{}
+// }
+
+// // 10 bytes = 2 (protocol length) + 4 (protocol name) + 1 (protocol version) + 1 (connect flag) + 2 (keep alive)
+// func (mvh *MqttVariableHeader) BuildConnect(protocolName string, protocolVersion byte, flag byte, keepalive uint16) {
+
+// 	mvh.content = append(mvh.content, util.StringEncode(protocolName)...)
+// 	mvh.content = append(mvh.content, []byte{protocolVersion}...)
+// 	mvh.content = append(mvh.content, []byte{flag}...)
+// 	mvh.content = append(mvh.content, util.Uint162bytes(keepalive)...)
+
+// }
+
+// func (mvh *MqttVariableHeader) BuildPublish(topicName string) {
+
+// 	mvh.content = append(mvh.content, util.StringEncode(topicName)...)
+// }
+
+// func (mvh *MqttVariableHeader) BuildSubscribe(packetId uint16, topicName string) {
+
+// 	mvh.content = append(mvh.content, util.Uint162bytes(packetId)...)
+// 	mvh.content = append(mvh.content, util.StringEncode(topicName)...)
+// }
+
+// func (mvh *MqttVariableHeader) Encode() []byte {
+// 	// var buffer bytes.Buffer
+
+// 	// buf := util.Uint162bytes(mvh.ProtocolLength)
+// 	// buffer.Write(buf)
+
+// 	// buffer.WriteString(mvh.ProtocolName)
+
+// 	// buffer.WriteByte(mvh.ProtocolVersion)
+
+// 	// buffer.WriteByte(mvh.ConnectFlag)
+
+// 	// buf = util.Uint162bytes(mvh.KeepAlive)
+// 	// buffer.Write(buf)
+
+// 	// return buffer.Bytes()
+
+// 	return mvh.content
+// }
+
+// func (mvh *MqttVariableHeader) Len() int {
+// 	return len(mvh.content)
+// }

@@ -118,14 +118,12 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	mh := header.NewMqttHeader()
 	mh.Control = header.CONNECT
 
-	mvh := variableheader.NewMqttVariableHeader()
-
 	var connectFlag byte = variableheader.CONNECT_FLAG_CLEAN_SESSION
 	if mc.options != nil {
 		connectFlag |= variableheader.CONNECT_FLAG_USERNAME | variableheader.CONNECT_FLAG_PASSWORD
 	}
 
-	mvh.BuildConnect(PROTOCOL_NAME, PROTOCOL_LEVEL, connectFlag, TIME_OUT)
+	mvh := variableheader.NewConnectHeader(PROTOCOL_NAME, PROTOCOL_LEVEL, connectFlag, TIME_OUT)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(mc.clientId)
@@ -215,8 +213,8 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	//These Control Packets are PUBLISH (where QoS > 0), PUBACK, PUBREC, PUBREL, PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK.
 	var packetId uint16 = uint16(rand.Intn(math.MaxInt16))
 
-	mvh := variableheader.NewMqttVariableHeader()
-	mvh.BuildSubscribe(packetId, topic)
+	mvh := variableheader.NewSubscribeHeader(packetId, topic)
+	// mvh.BuildSubscribe(packetId, topic)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddQos(0x00)
@@ -283,8 +281,8 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 	mh := header.NewMqttHeader()
 	mh.Control = header.PUBLISH
 
-	mvh := variableheader.NewMqttVariableHeader()
-	mvh.BuildPublish(topic)
+	mvh := variableheader.NewPublishHeader(topic)
+	// mvh.BuildPublish(topic)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(message)
@@ -340,7 +338,8 @@ func (mc *MqttClient) Ping() (bool, error) {
 	mh := header.NewMqttHeader()
 	mh.Control = header.PINGREQ
 
-	mvh := variableheader.NewMqttVariableHeader()
+	// mvh := variableheader.NewMqttVariableHeader()
+	mvh := variableheader.NewEmptyHeader()
 
 	mpl := payload.NewMqttPayload()
 

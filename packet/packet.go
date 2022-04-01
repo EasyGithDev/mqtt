@@ -31,7 +31,7 @@ import (
 
 type MqttPacket struct {
 	Header         *header.MqttHeader
-	VariableHeader *variableheader.MqttVariableHeader
+	VariableHeader variableheader.VariableHeader
 	Payload        *payload.MqttPayload
 }
 
@@ -46,12 +46,12 @@ func (mp *MqttPacket) Encode() []byte {
 	var mqttBuffer bytes.Buffer
 
 	// mp.VariableHeader.ComputeProtocolLength()
-	mp.Header.ComputeRemainingLength(mp.VariableHeader.Len() + mp.Payload.Len())
+	mp.Header.ComputeRemainingLength(variableheader.Len(mp.VariableHeader) + mp.Payload.Len())
 
 	mqttBuffer.Write(mp.Header.Encode())
 
-	if mp.VariableHeader.Len() > 0 {
-		mqttBuffer.Write(mp.VariableHeader.Encode())
+	if variableheader.Len(mp.VariableHeader) > 0 {
+		mqttBuffer.Write(variableheader.Encode(mp.VariableHeader))
 	}
 
 	if mp.Payload.Len() > 0 {
