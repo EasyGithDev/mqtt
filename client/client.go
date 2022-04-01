@@ -115,9 +115,6 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 		return true, nil
 	}
 
-	mh := header.NewMqttHeader()
-	mh.Control = header.CONNECT
-
 	var connectFlag byte = vheader.CONNECT_FLAG_CLEAN_SESSION
 	if mc.options != nil {
 		connectFlag |= vheader.CONNECT_FLAG_USERNAME | vheader.CONNECT_FLAG_PASSWORD
@@ -133,6 +130,9 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 		mpl.AddString(mc.options.Login)
 		mpl.AddString(mc.options.Password)
 	}
+
+	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
+	mh.Control = header.CONNECT
 
 	mp := packet.NewMqttPacket()
 	mp.Header = mh
@@ -205,10 +205,6 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 		return false, nil
 	}
 
-	mh := header.NewMqttHeader()
-	// Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and MUST be set to 0,0,1 and 0 respectively.
-	mh.Control = header.SUBSCRIBE | 1<<1
-
 	//The variable header component of many of the Control Packet types includes a 2 byte Packet Identifier field.
 	//These Control Packets are PUBLISH (where QoS > 0), PUBACK, PUBREC, PUBREL, PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK.
 	var packetId uint16 = uint16(rand.Intn(math.MaxInt16))
@@ -218,6 +214,10 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddQos(0x00)
+
+	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
+	// Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and MUST be set to 0,0,1 and 0 respectively.
+	mh.Control = header.SUBSCRIBE | 1<<1
 
 	mp := packet.NewMqttPacket()
 	mp.Header = mh
@@ -278,14 +278,14 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 	// Perform the on connect
 	// }
 
-	mh := header.NewMqttHeader()
-	mh.Control = header.PUBLISH
-
 	mvh := vheader.NewPublishHeader(topic)
 	// mvh.BuildPublish(topic)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(message)
+
+	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
+	mh.Control = header.PUBLISH
 
 	mp := packet.NewMqttPacket()
 	mp.Header = mh
@@ -335,13 +335,12 @@ func (mc *MqttClient) Ping() (bool, error) {
 		return false, nil
 	}
 
-	mh := header.NewMqttHeader()
-	mh.Control = header.PINGREQ
-
-	// mvh := variableheader.NewMqttVariableHeader()
 	mvh := vheader.NewEmptyHeader()
 
 	mpl := payload.NewMqttPayload()
+
+	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
+	mh.Control = header.PINGREQ
 
 	mp := packet.NewMqttPacket()
 	mp.Header = mh
@@ -436,14 +435,17 @@ func (mc *MqttClient) LoopForever() {
 		b1 := bytes.NewBuffer(buffer[:n])
 		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
-		header := header.NewMqttHeader()
-		header.Control, _ = b1.ReadByte()
+		control, _ := b1.ReadByte()
+
+		log.Printf("Header control: %b\n", control)
 
 		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
 		nb, _ := header.RemaingLengthDecode(b1.Bytes())
 		// log.Printf("Read length: %d %d \n", nb, rLength)
-		header.RemainingLength = b1.Next(nb)
+		remainingLength := b1.Next(nb)
+
+		log.Printf("Header remainingLength: %b\n", remainingLength)
 
 		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 

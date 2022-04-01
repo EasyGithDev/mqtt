@@ -60,17 +60,13 @@ type MqttHeader struct {
 	// 1 byte  = Packet type  (4bits) + flags (4bits)
 	Control byte
 
-	// Length of the paquet in bytes
-	// Optionnal
-	PacketLength byte
-
 	// Remaining length 1-4 bytes
 	// This is the total length without fixed header
 	RemainingLength []byte
 }
 
-func NewMqttHeader() *MqttHeader {
-	return &MqttHeader{}
+func NewMqttHeader(remainingLength int) *MqttHeader {
+	return &MqttHeader{RemainingLength: RemainingLengthEncode(remainingLength)}
 }
 
 func (mh *MqttHeader) Encode() []byte {
@@ -94,11 +90,7 @@ func (mh *MqttHeader) Len() int {
 	return 1 + len(mh.RemainingLength)
 }
 
-func (mh *MqttHeader) ComputeRemainingLength(len int) {
-	mh.RemainingLength = mh.RemainingLengthEncode(len)
-}
-
-func (mh *MqttHeader) RemainingLengthEncode(x int) []byte {
+func RemainingLengthEncode(x int) []byte {
 
 	var buffer []byte = make([]byte, 0)
 	var encodedByte int = 0
@@ -124,7 +116,7 @@ func (mh *MqttHeader) RemainingLengthEncode(x int) []byte {
 	return buffer
 }
 
-func (mh *MqttHeader) RemaingLengthDecode(x []byte) (int, int) {
+func RemaingLengthDecode(x []byte) (int, int) {
 
 	var multiplier int = 1
 

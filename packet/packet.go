@@ -23,8 +23,6 @@ package packet
 
 import (
 	"bytes"
-
-	"github.com/easygithdev/mqtt/packet/header"
 )
 
 /////////////////////////////////////////////////
@@ -49,7 +47,7 @@ func Len(header PaquetContent) int {
 /////////////////////////////////////////////////
 
 type MqttPacket struct {
-	Header         *header.MqttHeader
+	Header         PaquetContent
 	VariableHeader PaquetContent
 	Payload        PaquetContent
 }
@@ -64,9 +62,7 @@ func (mp *MqttPacket) Encode() []byte {
 
 	var mqttBuffer bytes.Buffer
 
-	mp.Header.ComputeRemainingLength(PaquetContent.Len(mp.VariableHeader) + PaquetContent.Len(mp.Payload))
-
-	mqttBuffer.Write(mp.Header.Encode())
+	mqttBuffer.Write(PaquetContent.Encode(mp.Header))
 
 	if PaquetContent.Len(mp.VariableHeader) > 0 {
 		mqttBuffer.Write(PaquetContent.Encode(mp.VariableHeader))
@@ -81,14 +77,14 @@ func (mp *MqttPacket) Encode() []byte {
 
 func (mp *MqttPacket) Decode(data []byte) {
 
-	mp.Header.Decode(data)
+	// mp.Header.Decode(data)
 
-	// check the first byte
-	switch data[0] {
-	case header.CONNACK:
-	case header.PUBACK:
-	case header.SUBACK:
+	// // check the first byte
+	// switch data[0] {
+	// case header.CONNACK:
+	// case header.PUBACK:
+	// case header.SUBACK:
 
-	}
+	// }
 
 }
