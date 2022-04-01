@@ -29,6 +29,7 @@ import (
 	"math"
 	"math/rand"
 	"net"
+	"time"
 
 	"github.com/easygithdev/mqtt/packet"
 	"github.com/easygithdev/mqtt/packet/header"
@@ -62,9 +63,11 @@ type MqttClient struct {
 	clientId        string
 	conn            *net.Conn
 	options         *MqttConnectOptions
+	connOpen        bool
 	OnTcpConnect    func(conn net.Conn)
 	OnTcpDisconnect func()
 	OnConnect       func()
+	OnPing          func()
 	OnPublish       func()
 	OnSubscribe     func()
 	OnMessage       func(messgage string)
@@ -107,6 +110,10 @@ func (mc *MqttClient) TcpDisconnect() {
 }
 
 func (mc *MqttClient) MqttConnect() (bool, error) {
+
+	if mc.connOpen {
+		return true, nil
+	}
 
 	mh := header.NewMqttHeader()
 	mh.Control = header.CONNECT
@@ -169,6 +176,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 			if mc.OnConnect != nil {
 				mc.OnConnect()
 			}
+			mc.connOpen = true
 			return true, nil
 		case header.CONNECT_REFUSED_1:
 			return false, errors.New("connection Refused, unacceptable protocol version")
@@ -366,6 +374,9 @@ func (mc *MqttClient) Ping() (bool, error) {
 	control, _ := bb.ReadByte()
 
 	if control == header.PINGRESP {
+		if mc.OnPing != nil {
+			mc.OnPing()
+		}
 		return true, nil
 	}
 
@@ -398,7 +409,18 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 // }
 
-func (mc *MqttClient) ReadLoop() {
+func (mc *MqttClient) LoopStart() {
+	start := time.Now()
+	for {
+		elapsed := time.Since(start).Seconds()
+		if int(math.Ceil(elapsed)) >= int(TIME_OUT/3) {
+			mc.Ping()
+			start = time.Now()
+		}
+	}
+}
+
+func (mc *MqttClient) LoopForever() {
 
 	for {
 		buffer := make([]byte, 1024)

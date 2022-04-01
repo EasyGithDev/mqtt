@@ -25,8 +25,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
 	"os"
+	"time"
 
 	"github.com/easygithdev/mqtt/client"
 )
@@ -39,7 +41,7 @@ const (
 	connPort = "1883"
 	// connPort = "1884"
 
-	DEBUG = false
+	DEBUG = true
 )
 
 func init() {
@@ -63,8 +65,12 @@ var onConnect = func() {
 	fmt.Println("Connecting to MQTT server ...")
 }
 
+var onPing = func() {
+	fmt.Println("Ping server ...")
+}
+
 var onPublish = func() {
-	fmt.Println("Publish ")
+	fmt.Println("Publish ...")
 }
 
 var onSubscribe = func() {
@@ -84,6 +90,7 @@ func main() {
 	mc.OnTcpConnect = onTcpConnect
 	mc.OnTcpDisconnect = onTcpDisconnect
 	mc.OnConnect = onConnect
+	mc.OnPing = onPing
 	mc.OnPublish = onPublish
 	mc.OnSubscribe = onSubscribe
 	mc.OnMessage = onMessage
@@ -132,17 +139,33 @@ func main() {
 	// }
 
 	///////////////////////////////////////////////////////////
+	// Publish Loop
+	///////////////////////////////////////////////////////////
+
+	go mc.LoopStart()
+
+	for {
+		temperature := rand.Intn(60)
+		_, pubErr := mc.Publish("/hello/world", "The temperature is "+fmt.Sprintf("%d", temperature))
+
+		if pubErr != nil {
+			log.Print("Error publishing:", pubErr.Error())
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	///////////////////////////////////////////////////////////
 	// Subscribe
 	///////////////////////////////////////////////////////////
 
-	respSub, errSub := mc.Subscribe("/tartine/de/confiture")
-	if errSub != nil {
-		log.Printf("Subscribe Error: %s\n", errSub)
-	}
+	// respSub, errSub := mc.Subscribe("/tartine/de/confiture")
+	// if errSub != nil {
+	// 	log.Printf("Subscribe Error: %s\n", errSub)
+	// }
 
-	if respSub {
-		log.Printf("Subcribe established \n")
-		mc.ReadLoop()
-	}
+	// if respSub {
+	// 	log.Printf("Subcribe established \n")
+	// 	mc.LoopForever()
+	// }
 
 }
