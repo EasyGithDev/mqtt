@@ -25,8 +25,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
 	"os"
+	"time"
 
 	"github.com/easygithdev/mqtt/client"
 )
@@ -104,14 +106,10 @@ func main() {
 	// Ping
 	///////////////////////////////////////////////////////////
 
-	// resp, err := mc.Ping()
+	// _, err := mc.Ping()
 
 	// if err != nil {
 	// 	log.Print("Error ping:", err.Error())
-	// }
-
-	// if resp {
-	// 	log.Print("Ping is done with success")
 	// }
 
 	///////////////////////////////////////////////////////////
@@ -124,31 +122,27 @@ func main() {
 	// Publish
 	///////////////////////////////////////////////////////////
 
-	pubResp, pubErr := mc.Publish("/hello/world", "this is my hello world")
+	// _, pubErr := mc.Publish("/hello/world", "this is my hello world")
 
-	if pubErr != nil {
-		log.Print("Error publishing:", pubErr.Error())
-	}
-
-	if pubResp {
-		log.Print("Publish is done with success")
-	}
+	// if pubErr != nil {
+	// 	log.Print("Error publishing:", pubErr.Error())
+	// }
 
 	///////////////////////////////////////////////////////////
 	// Publish Loop
 	///////////////////////////////////////////////////////////
 
-	// go mc.LoopStart()
+	go mc.LoopStart()
 
-	// for {
-	// 	temperature := rand.Intn(60)
-	// 	_, pubErr := mc.Publish("/hello/world", "The temperature is "+fmt.Sprintf("%d", temperature))
+	for {
+		temperature := rand.Intn(60)
+		_, pubErr := mc.Publish("/hello/world", "The temperature is "+fmt.Sprintf("%d", temperature))
 
-	// 	if pubErr != nil {
-	// 		log.Print("Error publishing:", pubErr.Error())
-	// 	}
-	// 	time.Sleep(5 * time.Second)
-	// }
+		if pubErr != nil {
+			log.Print("Error publishing:", pubErr.Error())
+		}
+		time.Sleep(5 * time.Second)
+	}
 
 	///////////////////////////////////////////////////////////
 	// Subscribe
