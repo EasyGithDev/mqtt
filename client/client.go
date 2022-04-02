@@ -194,6 +194,43 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	return false, nil
 }
 
+func (mc *MqttClient) MqttDisconnect() (bool, error) {
+
+	if !mc.connOpen {
+		return true, nil
+	}
+
+	mvh := vheader.NewEmptyHeader()
+
+	mpl := payload.NewMqttPayload()
+
+	mh := header.NewMqttHeader(0)
+	mh.Control = header.DISCONNECT
+
+	mp := packet.NewMqttPacket()
+	mp.Header = mh
+	mp.VariableHeader = mvh
+	mp.Payload = mpl
+
+	// log.Printf("Sending command: 0x%x \n", mh.Control)
+
+	buffer := mp.Encode()
+
+	n, err := (*mc.conn).Write(buffer)
+	if err != nil {
+		log.Printf("Write Error: %s\n", err)
+		return false, err
+	}
+
+	log.Printf("Wrote %d byte(s)\n", n)
+
+	mc.TcpDisconnect()
+	mc.connOpen = false
+
+	return true, nil
+
+}
+
 // The SUBSCRIBE Packet is sent from the Client to the Server to create one or more Subscriptions.
 // Each Subscription registers a Client’s interest in one or more Topics. The Server sends PUBLISH Packets to the Client in order to forward Application Messages that were published to Topics that match these Subscriptions. The SUBSCRIBE Packet also specifies (for each Subscription) the maximum QoS with which the Server can send Application Messages to the Client.
 func (mc *MqttClient) Subscribe(topic string) (bool, error) {
@@ -380,32 +417,6 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 	return false, nil
 }
-
-// func (mc *MqttClient) Disconnect() (bool, error) {
-// 	mp := packet.NewMqttPacket()
-// 	mp.Control = packet.DISCONNECT
-
-// 	log.Printf("Sending command: 0x%x \n", mp.Control)
-
-// 	buffer := mp.Encode()
-
-// 	n, err := (*mc.conn).Write(buffer)
-// 	if err != nil {
-// 		log.Printf("Write Error: %s\n", err)
-// 		return false, err
-// 	}
-
-// 	log.Printf("Wrote %d byte(s)\n", n)
-
-// 	_, err = mc.Read()
-// 	if err != nil {
-// 		log.Printf("Sender: Read Error: %s\n", err)
-// 		return false, err
-// 	}
-
-// 	return true, nil
-
-// }
 
 func (mc *MqttClient) LoopStart() {
 	start := time.Now()
