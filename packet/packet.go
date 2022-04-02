@@ -59,17 +59,20 @@ func NewMqttPacket() *MqttPacket {
 func (mp *MqttPacket) Encode() []byte {
 
 	// compute the fields
-
 	var mqttBuffer bytes.Buffer
 
 	mqttBuffer.Write(PaquetContent.Encode(mp.Header))
 
-	if PaquetContent.Len(mp.VariableHeader) > 0 {
-		mqttBuffer.Write(PaquetContent.Encode(mp.VariableHeader))
+	if mp.VariableHeader != nil {
+		if PaquetContent.Len(mp.VariableHeader) > 0 {
+			mqttBuffer.Write(PaquetContent.Encode(mp.VariableHeader))
+		}
 	}
 
-	if PaquetContent.Len(mp.Payload) > 0 {
-		mqttBuffer.Write(PaquetContent.Encode(mp.Payload))
+	if mp.Payload != nil {
+		if PaquetContent.Len(mp.Payload) > 0 {
+			mqttBuffer.Write(PaquetContent.Encode(mp.Payload))
+		}
 	}
 
 	return mqttBuffer.Bytes()

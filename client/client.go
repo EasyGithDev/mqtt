@@ -200,17 +200,11 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 		return true, nil
 	}
 
-	mvh := vheader.NewEmptyHeader()
-
-	mpl := payload.NewMqttPayload()
-
 	mh := header.NewMqttHeader(0)
 	mh.Control = header.DISCONNECT
 
 	mp := packet.NewMqttPacket()
 	mp.Header = mh
-	mp.VariableHeader = mvh
-	mp.Payload = mpl
 
 	// log.Printf("Sending command: 0x%x \n", mh.Control)
 
