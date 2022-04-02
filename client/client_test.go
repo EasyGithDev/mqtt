@@ -59,3 +59,67 @@ func TestConnectDisconnect(t *testing.T) {
 		}
 	}
 }
+
+func TestPing(t *testing.T) {
+
+	mc := NewMqttClient("test-golang-mqtt")
+	_, connErr := mc.TcpConnect(connHost, connPort)
+	if connErr != nil {
+		log.Print("Error connecting:", connErr.Error())
+		os.Exit(1)
+	}
+	defer mc.TcpDisconnect()
+
+	response, err := mc.Ping()
+
+	if err != nil {
+		t.Errorf("Mqtt ping fail %s", err)
+	}
+	if !response {
+		t.Errorf("Mqtt ping fail")
+	}
+
+}
+
+func TestPublish(t *testing.T) {
+
+	mc := NewMqttClient("test-golang-mqtt")
+	_, connErr := mc.TcpConnect(connHost, connPort)
+	if connErr != nil {
+		log.Print("Error connecting:", connErr.Error())
+		os.Exit(1)
+	}
+	defer mc.TcpDisconnect()
+
+	response, err := mc.Publish("/hello/world", "this is my hello world")
+
+	if err != nil {
+		t.Errorf("Mqtt publish fail %s", err)
+	}
+	if !response {
+		t.Errorf("Mqtt publish fail")
+	}
+
+}
+
+func TestSubscribe(t *testing.T) {
+
+	mc := NewMqttClient("test-golang-mqtt")
+	_, connErr := mc.TcpConnect(connHost, connPort)
+	if connErr != nil {
+		log.Print("Error connecting:", connErr.Error())
+		os.Exit(1)
+	}
+	defer mc.TcpDisconnect()
+
+	response, err := mc.Subscribe("/hello/world")
+
+	if err != nil {
+		t.Errorf("Mqtt subscribe fail %s", err)
+	}
+
+	if !response {
+		t.Errorf("Mqtt subscribe fail")
+	}
+
+}

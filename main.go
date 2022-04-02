@@ -25,10 +25,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net"
 	"os"
-	"time"
 
 	"github.com/easygithdev/mqtt/client"
 )
@@ -132,30 +130,35 @@ func main() {
 	// Publish Loop
 	///////////////////////////////////////////////////////////
 
-	go mc.LoopStart()
+	// go mc.LoopStart()
 
-	for {
-		temperature := rand.Intn(60)
-		_, pubErr := mc.Publish("/hello/world", "The temperature is "+fmt.Sprintf("%d", temperature))
+	// for {
+	// 	temperature := rand.Intn(60)
+	// 	_, pubErr := mc.Publish("/hello/world", "The temperature is "+fmt.Sprintf("%d", temperature))
 
-		if pubErr != nil {
-			log.Print("Error publishing:", pubErr.Error())
-		}
-		time.Sleep(5 * time.Second)
-	}
+	// 	if pubErr != nil {
+	// 		log.Print("Error publishing:", pubErr.Error())
+	// 	}
+	// 	time.Sleep(5 * time.Second)
+	// }
 
 	///////////////////////////////////////////////////////////
 	// Subscribe
 	///////////////////////////////////////////////////////////
 
-	// respSub, errSub := mc.Subscribe("/tartine/de/confiture")
-	// if errSub != nil {
-	// 	log.Printf("Subscribe Error: %s\n", errSub)
-	// }
+	respSub1, errSub := mc.Subscribe("/tartine/de/confiture")
+	if errSub != nil {
+		log.Printf("Subscribe Error: %s\n", errSub)
+	}
 
-	// if respSub {
-	// 	log.Printf("Subcribe established \n")
-	// 	mc.LoopForever()
-	// }
+	respSub2, errSub := mc.Subscribe("/hello/world")
+	if errSub != nil {
+		log.Printf("Subscribe Error: %s\n", errSub)
+	}
+
+	if respSub1 && respSub2 {
+		log.Printf("Subcribe established \n")
+		mc.LoopForever()
+	}
 
 }
