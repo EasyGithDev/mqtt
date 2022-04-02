@@ -24,6 +24,7 @@ package client
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -56,20 +57,21 @@ var TIME_OUT uint16 = 60
 type MqttConnectOptions struct {
 	Login    string
 	Password string
-	QoS      byte
 }
 
 type MqttClient struct {
-	clientId        string
-	conn            *net.Conn
-	options         *MqttConnectOptions
-	connOpen        bool
+	conn    *net.Conn
+	options *MqttConnectOptions
+
+	clientId string
+	connOpen bool
+
 	OnTcpConnect    func(conn net.Conn)
 	OnTcpDisconnect func()
 	OnConnect       func()
 	OnPing          func()
-	OnPublish       func()
-	OnSubscribe     func()
+	OnPublish       func(topic string, message string, qos int)
+	OnSubscribe     func(topic string, qos int)
 	OnMessage       func(messgage string)
 }
 
@@ -281,7 +283,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 
 	if control == header.SUBACK {
 		if mc.OnSubscribe != nil {
-			mc.OnSubscribe()
+			mc.OnSubscribe(topic, 0)
 		}
 		return true, nil
 	}
@@ -295,7 +297,19 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 // wait for PUBREC – Publish received.
 // send back PUBREL – Publish release.
 // wait for PUBCOMP – Publish complete.
-func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
+func (mc *MqttClient) PublishQos0(topic string, message string) (bool, error) {
+	return mc.Publish(topic, message, 0)
+}
+
+func (mc *MqttClient) PublishQos1(topic string, message string) (bool, error) {
+	return mc.Publish(topic, message, 1)
+}
+
+func (mc *MqttClient) PublishQos2(topic string, message string) (bool, error) {
+	return mc.Publish(topic, message, 2)
+}
+
+func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, error) {
 
 	// Adding connection to mc
 	_, err := mc.MqttConnect()
@@ -312,6 +326,18 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
 	mh.Control = header.PUBLISH
 
+	if qos == 1 {
+		mh.Control |= 1 << 1
+
+	}
+
+	if qos == 2 {
+		mh.Control |= 1 << 2
+	}
+
+	// retain
+	//mh.Control |= 1 << 3
+
 	mp := packet.NewMqttPacket()
 	mp.Header = mh
 	mp.VariableHeader = mvh
@@ -327,13 +353,37 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 		return false, err
 	}
 
-	log.Printf("Wrote %d byte(s)\n", n)
+	log.Printf("Publish wrote %d byte(s)\n", n)
 
-	if mc.OnPublish != nil {
-		mc.OnPublish()
+	// Nothing to read for Qos 0
+	if qos == 0 {
+		if mc.OnPublish != nil {
+			mc.OnPublish(topic, message, qos)
+		}
+	} else if qos == 1 {
+
+		// Read PUBACK
+
+		readBuffer := make([]byte, READ_BUFFER_SISE)
+		n, err = (*mc.conn).Read(readBuffer)
+		if err != nil {
+			log.Printf("Read Error: %s\n", err)
+			return false, err
+		}
+
+		bb := bytes.NewBuffer(readBuffer[:n])
+		control, _ := bb.ReadByte()
+
+		if control == header.PUBACK {
+			if mc.OnPublish != nil {
+				mc.OnPublish(topic, message, qos)
+			}
+			return true, nil
+		}
+
+	} else if qos == 2 {
+		fmt.Println("2")
 	}
-
-	// performing section for qos1 & qos 2
 
 	return true, nil
 }

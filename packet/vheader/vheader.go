@@ -58,6 +58,9 @@ func (eh *EmptyHeader) Len() int {
 
 type ConnectHeader struct {
 
+	// Packet Identifier field
+	PacketIdentifier uint16
+
 	// Protocol (expl MQTT)
 	ProtocolName string
 

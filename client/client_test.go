@@ -91,7 +91,7 @@ func TestPublish(t *testing.T) {
 	}
 	defer mc.TcpDisconnect()
 
-	response, err := mc.Publish("/hello/world", "this is my hello world")
+	response, err := mc.Publish("/hello/world", "this is my hello world", 0)
 
 	if err != nil {
 		t.Errorf("Mqtt publish fail %s", err)

@@ -32,12 +32,11 @@ import (
 )
 
 const (
+	connHost = "test.mosquitto.org"
+	// connHost = "mqtt.eclipseprojects.io"
 
-	// connHost = "test.mosquitto.org"
-	connHost = "mqtt.eclipseprojects.io"
-
-	connPort = "1883"
-	// connPort = "1884"
+	// connPort = "1883"
+	connPort = "1884"
 
 	DEBUG = true
 )
@@ -67,12 +66,12 @@ var onPing = func() {
 	fmt.Println("Ping server ...")
 }
 
-var onPublish = func() {
-	fmt.Println("Publish ...")
+var onPublish = func(topic string, message string, qos int) {
+	fmt.Printf("Publish on %s:%s Qos:%d\n", topic, message, qos)
 }
 
-var onSubscribe = func() {
-	fmt.Println("Subcribe established ...")
+var onSubscribe = func(topic string, qos int) {
+	fmt.Printf("Subscribe to %s Qos:%d\n", topic, qos)
 }
 
 var onMessage = func(message string) {
@@ -80,6 +79,13 @@ var onMessage = func(message string) {
 }
 
 func main() {
+
+	// env = flag.String("env", "development", "current environment")
+	// port = flag.Int("port", 1883, "port number")
+	// type = flag.StringVar("pub", "type", "pub or sub")
+	// host = flag.StringVar("localhost", "host", "hostname")
+
+	// flag.Parse()
 
 	///////////////////////////////////////////////////////////
 	// Connect
@@ -114,17 +120,17 @@ func main() {
 	// Options for using username&password
 	///////////////////////////////////////////////////////////
 
-	// mc.SetOptions(&client.MqttConnectOptions{Login: "aa", Password: "bb"})
+	mc.SetOptions(&client.MqttConnectOptions{Login: "rw", Password: "readwrite"})
 
 	///////////////////////////////////////////////////////////
 	// Publish
 	///////////////////////////////////////////////////////////
 
-	// _, pubErr := mc.Publish("/hello/world", "this is my hello world")
+	_, pubErr := mc.Publish("/hello/world", "this is my hello world", 1)
 
-	// if pubErr != nil {
-	// 	log.Print("Error publishing:", pubErr.Error())
-	// }
+	if pubErr != nil {
+		log.Print("Error publishing:", pubErr.Error())
+	}
 
 	///////////////////////////////////////////////////////////
 	// Publish Loop
@@ -160,13 +166,13 @@ func main() {
 	// 	mc.LoopForever()
 	// }
 
-	respSub, errSub := mc.Subscribe("/hello/#")
-	if errSub != nil {
-		log.Printf("Subscribe Error: %s\n", errSub)
-	}
+	// respSub, errSub := mc.Subscribe("/hello/doly")
+	// if errSub != nil {
+	// 	log.Printf("Subscribe Error: %s\n", errSub)
+	// }
 
-	if respSub {
-		mc.LoopForever()
-	}
+	// if respSub {
+	// 	mc.LoopForever()
+	// }
 
 }
