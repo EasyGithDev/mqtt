@@ -304,13 +304,7 @@ func (mc *MqttClient) Publish(topic string, message string) (bool, error) {
 		return false, nil
 	}
 
-	// if resp {
-	//log.Printf("Connection established: \n")
-	// Perform the on connect
-	// }
-
 	mvh := vheader.NewPublishHeader(topic)
-	// mvh.BuildPublish(topic)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(message)
@@ -366,17 +360,11 @@ func (mc *MqttClient) Ping() (bool, error) {
 		return false, nil
 	}
 
-	mvh := vheader.NewEmptyHeader()
-
-	mpl := payload.NewMqttPayload()
-
-	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
+	mh := header.NewMqttHeader(0)
 	mh.Control = header.PINGREQ
 
 	mp := packet.NewMqttPacket()
 	mp.Header = mh
-	mp.VariableHeader = mvh
-	mp.Payload = mpl
 
 	writeBuffer := mp.Encode()
 

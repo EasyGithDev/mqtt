@@ -72,7 +72,7 @@ var onPublish = func() {
 }
 
 var onSubscribe = func() {
-	fmt.Println("Subscribed ...")
+	fmt.Println("Subcribe established ...")
 }
 
 var onMessage = func(message string) {
@@ -146,18 +146,26 @@ func main() {
 	// Subscribe
 	///////////////////////////////////////////////////////////
 
-	respSub1, errSub := mc.Subscribe("/tartine/de/confiture")
+	// respSub1, errSub := mc.Subscribe("/tartine/de/confiture")
+	// if errSub != nil {
+	// 	log.Printf("Subscribe Error: %s\n", errSub)
+	// }
+
+	// respSub2, errSub := mc.Subscribe("/hello/world")
+	// if errSub != nil {
+	// 	log.Printf("Subscribe Error: %s\n", errSub)
+	// }
+
+	// if respSub1 && respSub2 {
+	// 	mc.LoopForever()
+	// }
+
+	respSub, errSub := mc.Subscribe("/hello/#")
 	if errSub != nil {
 		log.Printf("Subscribe Error: %s\n", errSub)
 	}
 
-	respSub2, errSub := mc.Subscribe("/hello/world")
-	if errSub != nil {
-		log.Printf("Subscribe Error: %s\n", errSub)
-	}
-
-	if respSub1 && respSub2 {
-		log.Printf("Subcribe established \n")
+	if respSub {
 		mc.LoopForever()
 	}
 
