@@ -54,18 +54,31 @@ var PROTOCOL_LEVEL byte = 4
 // Default timeout for connect in variable Header
 var TIME_OUT uint16 = 60
 
-type MqttConnectOptions struct {
-	Login    string
-	Password string
+type MqttCredentials struct {
+	login    string
+	password string
+}
+
+func NewMqttCredentials(login string, password string) *MqttCredentials {
+	return &MqttCredentials{login: login, password: password}
 }
 
 type MqttClient struct {
-	conn    *net.Conn
-	options *MqttConnectOptions
+	// Tcp connection
+	conn *net.Conn
 
-	clientId string
-	connOpen bool
+	// Credentials
+	credentials *MqttCredentials
 
+	// parameters
+	clientId     string
+	Timeout      uint16
+	CleanSession bool
+
+	// behaviours
+	mqttConnected bool
+
+	// handlers
 	OnTcpConnect    func(conn net.Conn)
 	OnTcpDisconnect func()
 	OnConnect       func()
@@ -76,15 +89,15 @@ type MqttClient struct {
 }
 
 func NewMqttClient(clientId string) *MqttClient {
-	return &MqttClient{clientId: clientId}
+	return &MqttClient{clientId: clientId, Timeout: TIME_OUT, CleanSession: true}
 }
 
 func (mc *MqttClient) SetConn(conn *net.Conn) {
 	mc.conn = conn
 }
 
-func (mc *MqttClient) SetOptions(options *MqttConnectOptions) {
-	mc.options = options
+func (mc *MqttClient) SetCredentials(credentials *MqttCredentials) {
+	mc.credentials = credentials
 }
 
 func (mc *MqttClient) TcpConnect(host string, port string) (bool, error) {
@@ -113,24 +126,28 @@ func (mc *MqttClient) TcpDisconnect() {
 
 func (mc *MqttClient) MqttConnect() (bool, error) {
 
-	if mc.connOpen {
+	if mc.mqttConnected {
 		return true, nil
 	}
 
-	var connectFlag byte = vheader.CONNECT_FLAG_CLEAN_SESSION
-	if mc.options != nil {
+	var connectFlag byte = 0
+	if mc.CleanSession {
+		connectFlag |= vheader.CONNECT_FLAG_CLEAN_SESSION
+	}
+
+	if mc.credentials != nil {
 		connectFlag |= vheader.CONNECT_FLAG_USERNAME | vheader.CONNECT_FLAG_PASSWORD
 	}
 
-	mvh := vheader.NewConnectHeader(PROTOCOL_NAME, PROTOCOL_LEVEL, connectFlag, TIME_OUT)
+	mvh := vheader.NewConnectHeader(PROTOCOL_NAME, PROTOCOL_LEVEL, connectFlag, mc.Timeout)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(mc.clientId)
 
-	if mc.options != nil {
+	if mc.credentials != nil {
 		// mp.Header.Control = mp.Header.Control | (0x01 << 7) | (0x01 << 6)
-		mpl.AddString(mc.options.Login)
-		mpl.AddString(mc.options.Password)
+		mpl.AddString(mc.credentials.login)
+		mpl.AddString(mc.credentials.password)
 	}
 
 	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
@@ -176,7 +193,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 			if mc.OnConnect != nil {
 				mc.OnConnect()
 			}
-			mc.connOpen = true
+			mc.mqttConnected = true
 			return true, nil
 		case header.CONNECT_REFUSED_1:
 			return false, errors.New("connection Refused, unacceptable protocol version")
@@ -198,7 +215,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 
 func (mc *MqttClient) MqttDisconnect() (bool, error) {
 
-	if !mc.connOpen {
+	if !mc.mqttConnected {
 		return true, nil
 	}
 
@@ -221,7 +238,7 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 	log.Printf("Wrote %d byte(s)\n", n)
 
 	mc.TcpDisconnect()
-	mc.connOpen = false
+	mc.mqttConnected = false
 
 	return true, nil
 
@@ -464,12 +481,21 @@ func (mc *MqttClient) LoopStart() {
 func (mc *MqttClient) LoopForever() {
 
 	for {
-		buffer := make([]byte, 1024)
+
+		// Adding connection to mc
+		_, err := mc.MqttConnect()
+
+		if err != nil {
+			log.Printf("LoopForever Error: %s\n", err)
+		}
+
+		buffer := make([]byte, READ_BUFFER_SISE)
 		n, err := (*mc.conn).Read(buffer)
 		if err != nil {
 			log.Printf("Error: %s\n", err)
 			if err == io.EOF {
-				break
+				mc.mqttConnected = false
+				continue
 			}
 		}
 
