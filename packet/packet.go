@@ -94,10 +94,10 @@ func (mp *MqttPacket) Decode(data []byte) {
 }
 
 func (mp *MqttPacket) String() string {
-	return "**************** Header ****************\n" +
+	return "****************\tHeader\t****************\n" +
 		mp.Header.String() +
-		"\n**************** vHeader ****************\n" +
+		"\n****************\tvHeader\t****************\n" +
 		mp.VariableHeader.String() +
-		"\n**************** Payload ****************\n" +
+		"\n****************\tPayload\t****************\n" +
 		mp.Payload.String()
 }

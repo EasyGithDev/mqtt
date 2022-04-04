@@ -1,0 +1,21 @@
+2022/04/04 13:28:51 
+****************	Header	****************
+control: 10000 
+remainingLength: [100111]
+****************	vHeader	****************
+protocol: MQTT
+version: 4
+flag: 11000010
+keepalive: 60
+****************	Payload	****************
+go-lang-mqttrwreadwrite
+
+2022/04/04 13:28:51 
+****************	Header	****************
+control: 110010 
+remainingLength: [100110]
+****************	vHeader	****************
+topicName: /hello/world
+****************	Payload	****************
+this is my hello world
+
