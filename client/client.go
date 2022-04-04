@@ -24,7 +24,6 @@ package client
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io"
 	"log"
 	"math"
@@ -387,7 +386,58 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 		}
 
 	} else if qos == 2 {
-		fmt.Println("2")
+		// Read PUBREC
+
+		readBuffer := make([]byte, READ_BUFFER_SISE)
+		n, err = (*mc.conn).Read(readBuffer)
+		if err != nil {
+			log.Printf("Read Error: %s\n", err)
+			return false, err
+		}
+
+		bb := bytes.NewBuffer(readBuffer[:n])
+
+		control, _ := bb.ReadByte()
+		bb.Read(make([]byte, 1))
+		vh := make([]byte, 2)
+		bb.Read(vh)
+
+		if control == header.PUBREC {
+
+			// Send a PUBREL
+			// The variable header contains the same Packet Identifier as the PUBREC Packet that is being acknowledged
+			mvh := vheader.NewGenericHeader(vh)
+			mh := header.NewMqttHeader(mvh.Len())
+			mh.UsePubrel()
+			mp := packet.NewMqttPacket(mh, mvh, nil)
+			writeBuffer := mp.Encode()
+			_, err := (*mc.conn).Write(writeBuffer)
+			if err != nil {
+				log.Printf("Write Error: %s\n", err)
+				return false, err
+			}
+
+			// Read PUBCOMB
+			readBuffer := make([]byte, READ_BUFFER_SISE)
+			n, err = (*mc.conn).Read(readBuffer)
+			if err != nil {
+				log.Printf("Read Error: %s\n", err)
+				return false, err
+			}
+
+			bb := bytes.NewBuffer(readBuffer[:n])
+			control, _ := bb.ReadByte()
+
+			if control == header.PUBCOMP {
+				if mc.OnPublish != nil {
+					mc.OnPublish(topic, message, qos)
+				}
+			}
+
+		} else {
+			return false, nil
+		}
+
 	}
 
 	return true, nil

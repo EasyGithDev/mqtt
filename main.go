@@ -128,7 +128,7 @@ func main() {
 	// Publish
 	///////////////////////////////////////////////////////////
 
-	_, pubErr := mc.Publish("/hello/world", "this is my hello world", 1)
+	_, pubErr := mc.Publish("/hello/world", "this is my hello world", 2)
 
 	if pubErr != nil {
 		log.Print("Error publishing:", pubErr.Error())

@@ -36,22 +36,27 @@ var CONNECT_FLAG_PASSWORD byte = 0x40
 var CONNECT_FLAG_USERNAME byte = 0x80
 
 /////////////////////////////////////////////////
-// Empty header
+// Generic header
 /////////////////////////////////////////////////
 
-type EmptyHeader struct {
+type GenericHeader struct {
+	data []byte
 }
 
-func NewEmptyHeader() *EmptyHeader {
-	return &EmptyHeader{}
+func NewGenericHeader(data []byte) *GenericHeader {
+	return &GenericHeader{data: data}
 }
 
-func (eh *EmptyHeader) Encode() []byte {
-	return nil
+func (gh *GenericHeader) Encode() []byte {
+	return gh.data
 }
 
-func (eh *EmptyHeader) Len() int {
-	return 0
+func (gh *GenericHeader) Len() int {
+	return len(gh.data)
+}
+
+func (gh *GenericHeader) String() string {
+	return string(gh.data)
 }
 
 /////////////////////////////////////////////////
