@@ -52,8 +52,8 @@ type MqttPacket struct {
 	Payload        PaquetContent
 }
 
-func NewMqttPacket() *MqttPacket {
-	return &MqttPacket{}
+func NewMqttPacket(header PaquetContent, variableHeader PaquetContent, payload PaquetContent) *MqttPacket {
+	return &MqttPacket{Header: header, VariableHeader: variableHeader, Payload: payload}
 }
 
 func (mp *MqttPacket) Encode() []byte {

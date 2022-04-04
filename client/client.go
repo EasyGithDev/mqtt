@@ -153,11 +153,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
 	mh.Control = header.CONNECT
 
-	mp := packet.NewMqttPacket()
-	mp.Header = mh
-	mp.VariableHeader = mvh
-	mp.Payload = mpl
-
+	mp := packet.NewMqttPacket(mh, mvh, mpl)
 	buffer := mp.Encode()
 
 	log.Printf("Packet: %s\n", util.ShowHexa(buffer))
@@ -222,8 +218,7 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 	mh := header.NewMqttHeader(0)
 	mh.Control = header.DISCONNECT
 
-	mp := packet.NewMqttPacket()
-	mp.Header = mh
+	mp := packet.NewMqttPacket(mh, nil, nil)
 
 	// log.Printf("Sending command: 0x%x \n", mh.Control)
 
@@ -269,10 +264,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	// Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and MUST be set to 0,0,1 and 0 respectively.
 	mh.Control = header.SUBSCRIBE | 1<<1
 
-	mp := packet.NewMqttPacket()
-	mp.Header = mh
-	mp.VariableHeader = mvh
-	mp.Payload = mpl
+	mp := packet.NewMqttPacket(mh, mvh, mpl)
 
 	buffer := mp.Encode()
 
@@ -355,11 +347,7 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 	// retain
 	//mh.Control |= 1 << 3
 
-	mp := packet.NewMqttPacket()
-	mp.Header = mh
-	mp.VariableHeader = mvh
-	mp.Payload = mpl
-
+	mp := packet.NewMqttPacket(mh, mvh, mpl)
 	buffer := mp.Encode()
 
 	// log.Printf("Packet: %s\n", mc.ShowHexa(buffer))
@@ -430,9 +418,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 	mh := header.NewMqttHeader(0)
 	mh.Control = header.PINGREQ
 
-	mp := packet.NewMqttPacket()
-	mp.Header = mh
-
+	mp := packet.NewMqttPacket(mh, nil, nil)
 	writeBuffer := mp.Encode()
 
 	log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
