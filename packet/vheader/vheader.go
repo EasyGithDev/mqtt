@@ -22,6 +22,8 @@
 package vheader
 
 import (
+	"fmt"
+
 	"github.com/easygithdev/mqtt/packet/util"
 )
 
@@ -93,6 +95,10 @@ func (ch *ConnectHeader) Len() int {
 	return len(ch.Encode())
 }
 
+func (ch *ConnectHeader) String() string {
+	return fmt.Sprintf("protocol: %s\nversion: %d\nflag: %b\nkeepalive: %d", ch.ProtocolName, ch.ProtocolVersion, ch.Flag, ch.KeepAlive)
+}
+
 /////////////////////////////////////////////////
 // Subscribe header
 /////////////////////////////////////////////////
@@ -119,6 +125,10 @@ func (sh *SubscribeHeader) Len() int {
 	return len(sh.Encode())
 }
 
+func (sh *SubscribeHeader) String() string {
+	return fmt.Sprintf("packetId: %d\ntopicName: %s", sh.PacketId, sh.TopicName)
+}
+
 /////////////////////////////////////////////////
 // Publish header
 /////////////////////////////////////////////////
@@ -142,4 +152,8 @@ func (ph *PublishHeader) Encode() []byte {
 
 func (ph *PublishHeader) Len() int {
 	return len(ph.Encode())
+}
+
+func (ph *PublishHeader) String() string {
+	return fmt.Sprintf("topicName: %s", ph.TopicName)
 }

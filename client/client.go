@@ -154,17 +154,18 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	mh.Control = header.CONNECT
 
 	mp := packet.NewMqttPacket(mh, mvh, mpl)
-	buffer := mp.Encode()
+	writeBuffer := mp.Encode()
 
-	log.Printf("Packet: %s\n", util.ShowHexa(buffer))
+	log.Printf("\n%s\n", mp)
+	// log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
 
-	n, err := (*mc.conn).Write(buffer)
+	n, err := (*mc.conn).Write(writeBuffer)
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
 	}
 
-	log.Printf("Wrote %d byte(s)\n", n)
+	// log.Printf("Wrote %d byte(s)\n", n)
 
 	// Read CONNHACK
 
@@ -222,9 +223,9 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 
 	// log.Printf("Sending command: 0x%x \n", mh.Control)
 
-	buffer := mp.Encode()
+	writeBuffer := mp.Encode()
 
-	n, err := (*mc.conn).Write(buffer)
+	n, err := (*mc.conn).Write(writeBuffer)
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
@@ -265,18 +266,19 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	mh.Control = header.SUBSCRIBE | 1<<1
 
 	mp := packet.NewMqttPacket(mh, mvh, mpl)
+	writeBuffer := mp.Encode()
 
-	buffer := mp.Encode()
+	log.Printf("\n%s\n", mp)
 
-	log.Printf("Packet: %s\n", util.ShowHexa(buffer))
+	// log.Printf("Packet: %s\n", util.ShowHexa(buffer))
 
-	n, err := (*mc.conn).Write(buffer)
+	n, err := (*mc.conn).Write(writeBuffer)
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
 	}
 
-	log.Printf("Wrote %d byte(s)\n", n)
+	// log.Printf("Wrote %d byte(s)\n", n)
 
 	// Read SUBACK
 
@@ -348,17 +350,17 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 	//mh.Control |= 1 << 3
 
 	mp := packet.NewMqttPacket(mh, mvh, mpl)
-	buffer := mp.Encode()
+	writeBuffer := mp.Encode()
 
-	// log.Printf("Packet: %s\n", mc.ShowHexa(buffer))
+	log.Printf("\n%s\n", mp)
 
-	n, err := (*mc.conn).Write(buffer)
+	n, err := (*mc.conn).Write(writeBuffer)
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
 	}
 
-	log.Printf("Publish wrote %d byte(s)\n", n)
+	// log.Printf("Publish wrote %d byte(s)\n", n)
 
 	// Nothing to read for Qos 0
 	if qos == 0 {
@@ -421,7 +423,9 @@ func (mc *MqttClient) Ping() (bool, error) {
 	mp := packet.NewMqttPacket(mh, nil, nil)
 	writeBuffer := mp.Encode()
 
-	log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
+	log.Printf("\n%s\n", mp)
+
+	// log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
 
 	n, err := (*mc.conn).Write(writeBuffer)
 	if err != nil {

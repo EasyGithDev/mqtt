@@ -32,6 +32,7 @@ import (
 type PaquetContent interface {
 	Encode() []byte
 	Len() int
+	String() string
 }
 
 func Encode(header PaquetContent) []byte {
@@ -90,4 +91,13 @@ func (mp *MqttPacket) Decode(data []byte) {
 
 	// }
 
+}
+
+func (mp *MqttPacket) String() string {
+	return "**************** Header ****************\n" +
+		mp.Header.String() +
+		"\n**************** vHeader ****************\n" +
+		mp.VariableHeader.String() +
+		"\n**************** Payload ****************\n" +
+		mp.Payload.String()
 }

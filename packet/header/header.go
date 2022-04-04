@@ -23,6 +23,7 @@ package header
 
 import (
 	"bytes"
+	"fmt"
 )
 
 //  MQTT Control Packet type
@@ -88,6 +89,10 @@ func (mh *MqttHeader) Decode(buffer []byte) {
 
 func (mh *MqttHeader) Len() int {
 	return 1 + len(mh.RemainingLength)
+}
+
+func (mh *MqttHeader) String() string {
+	return fmt.Sprintf("control: %b \nremainingLength: %b", mh.Control, mh.RemainingLength)
 }
 
 func RemainingLengthEncode(x int) []byte {
