@@ -45,6 +45,16 @@ var AUTH byte = 0xF0        // 240
 
 //  MQTT Flags
 
+// PUBLISH Used in MQTT 3.1.1
+// bit 3 -> DUP1
+// bit 2 -> QoS2
+// bit 1 -> QoS2
+// bit 0 -> RETAIN3
+
+// PUBREL -> bit 1
+// SUBSCRIBE -> bit 1
+// UNSUBSCRIBE -> bit 1
+
 //  MQTT Connection responses
 
 var CONNECT_ACCEPTED byte = 0x00
@@ -93,6 +103,90 @@ func (mh *MqttHeader) Len() int {
 
 func (mh *MqttHeader) String() string {
 	return fmt.Sprintf("control: %b \nremainingLength: %b", mh.Control, mh.RemainingLength)
+}
+
+func (mh *MqttHeader) UseConnect() {
+	mh.Control = CONNECT
+}
+
+func (mh *MqttHeader) UseConnack() {
+	mh.Control = CONNACK
+}
+
+func (mh *MqttHeader) UsePublish() {
+	mh.Control = PUBLISH
+}
+
+func (mh *MqttHeader) UsePuback() {
+	mh.Control = PUBACK
+}
+
+func (mh *MqttHeader) UsePubrec() {
+	mh.Control = PUBREC
+}
+
+func (mh *MqttHeader) UsePubrel() {
+	mh.Control = PUBREL | 1<<1
+}
+
+func (mh *MqttHeader) UsePubcomp() {
+	mh.Control = PUBCOMP
+}
+
+func (mh *MqttHeader) UseSubscribe() {
+	mh.Control = SUBSCRIBE | 1<<1
+}
+
+func (mh *MqttHeader) UseSuback() {
+	mh.Control = SUBACK
+}
+
+func (mh *MqttHeader) UseUnsubscribe() {
+	mh.Control = UNSUBSCRIBE | 1<<1
+}
+
+func (mh *MqttHeader) UseUnsuback() {
+	mh.Control = UNSUBSCRIBE
+}
+
+func (mh *MqttHeader) UsePingreq() {
+	mh.Control = PINGREQ
+}
+
+func (mh *MqttHeader) UsePingresp() {
+	mh.Control = PINGRESP
+}
+
+func (mh *MqttHeader) UseDisconnect() {
+	mh.Control = DISCONNECT
+}
+
+func (mh *MqttHeader) UseAuth() {
+	mh.Control = AUTH
+}
+
+func (mh *MqttHeader) UseRetain() {
+	if mh.Control == PUBLISH {
+		mh.Control |= 1 << 1
+	}
+}
+
+func (mh *MqttHeader) UseQos1() {
+	if mh.Control == PUBLISH {
+		mh.Control |= 1 << 1
+	}
+}
+
+func (mh *MqttHeader) UseQos2() {
+	if mh.Control == PUBLISH {
+		mh.Control |= 1 << 2
+	}
+}
+
+func (mh *MqttHeader) UseDup() {
+	if mh.Control == PUBLISH {
+		mh.Control |= 1 << 3
+	}
 }
 
 func RemainingLengthEncode(x int) []byte {

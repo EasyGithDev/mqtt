@@ -151,7 +151,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	}
 
 	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
-	mh.Control = header.CONNECT
+	mh.UseConnect()
 
 	mp := packet.NewMqttPacket(mh, mvh, mpl)
 	writeBuffer := mp.Encode()
@@ -217,7 +217,7 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 	}
 
 	mh := header.NewMqttHeader(0)
-	mh.Control = header.DISCONNECT
+	mh.UseDisconnect()
 
 	mp := packet.NewMqttPacket(mh, nil, nil)
 
@@ -262,8 +262,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	mpl.AddQos(0x00)
 
 	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
-	// Bits 3,2,1 and 0 of the fixed header of the SUBSCRIBE Control Packet are reserved and MUST be set to 0,0,1 and 0 respectively.
-	mh.Control = header.SUBSCRIBE | 1<<1
+	mh.UseSubscribe()
 
 	mp := packet.NewMqttPacket(mh, mvh, mpl)
 	writeBuffer := mp.Encode()
@@ -335,15 +334,14 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 	mpl.AddString(message)
 
 	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
-	mh.Control = header.PUBLISH
+	mh.UsePublish()
 
 	if qos == 1 {
-		mh.Control |= 1 << 1
-
+		mh.UseQos1()
 	}
 
 	if qos == 2 {
-		mh.Control |= 1 << 2
+		mh.UseQos2()
 	}
 
 	// retain
@@ -418,7 +416,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 	}
 
 	mh := header.NewMqttHeader(0)
-	mh.Control = header.PINGREQ
+	mh.UsePingreq()
 
 	mp := packet.NewMqttPacket(mh, nil, nil)
 	writeBuffer := mp.Encode()
