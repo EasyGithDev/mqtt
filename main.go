@@ -128,11 +128,11 @@ func main() {
 	// Publish
 	///////////////////////////////////////////////////////////
 
-	_, pubErr := mc.Publish("/hello/world", "this is my hello world", 2)
+	// _, pubErr := mc.Publish("/hello/world", "this is my hello world", 2)
 
-	if pubErr != nil {
-		log.Print("Error publishing:", pubErr.Error())
-	}
+	// if pubErr != nil {
+	// 	log.Print("Error publishing:", pubErr.Error())
+	// }
 
 	///////////////////////////////////////////////////////////
 	// Publish Loop
@@ -168,13 +168,13 @@ func main() {
 	// 	mc.LoopForever()
 	// }
 
-	// respSub, errSub := mc.Subscribe("/hello/doly")
-	// if errSub != nil {
-	// 	log.Printf("Subscribe Error: %s\n", errSub)
-	// }
+	respSub, errSub := mc.Subscribe("/hello/doly")
+	if errSub != nil {
+		log.Printf("Subscribe Error: %s\n", errSub)
+	}
 
-	// if respSub {
-	// 	mc.LoopForever()
-	// }
+	if respSub {
+		mc.LoopForever()
+	}
 
 }

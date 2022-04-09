@@ -53,6 +53,7 @@ var PROTOCOL_LEVEL byte = 4
 // Default timeout for connect in variable Header
 var TIME_OUT uint16 = 60
 
+// Store login/pass in struct
 type MqttCredentials struct {
 	login    string
 	password string
@@ -62,9 +63,13 @@ func NewMqttCredentials(login string, password string) *MqttCredentials {
 	return &MqttCredentials{login: login, password: password}
 }
 
+// Define the Mqtt client
 type MqttClient struct {
 	// Tcp connection
-	conn *net.Conn
+	conn     *net.Conn
+	connType string
+	connHost string
+	connPort string
 
 	// Credentials
 	credentials *MqttCredentials
@@ -75,7 +80,8 @@ type MqttClient struct {
 	CleanSession bool
 
 	// behaviours
-	mqttConnected bool
+	mqttConnected   bool
+	topicSubscribed string
 
 	// handlers
 	OnTcpConnect    func(conn net.Conn)
@@ -100,6 +106,9 @@ func (mc *MqttClient) SetCredentials(credentials *MqttCredentials) {
 }
 
 func (mc *MqttClient) TcpConnect(host string, port string) (bool, error) {
+	mc.connHost = host
+	mc.connPort = port
+	mc.connType = CONN_TYPE
 	conn, err := net.Dial(CONN_TYPE, host+":"+port)
 
 	if err != nil {
@@ -242,6 +251,8 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 // The SUBSCRIBE Packet is sent from the Client to the Server to create one or more Subscriptions.
 // Each Subscription registers a Client’s interest in one or more Topics. The Server sends PUBLISH Packets to the Client in order to forward Application Messages that were published to Topics that match these Subscriptions. The SUBSCRIBE Packet also specifies (for each Subscription) the maximum QoS with which the Server can send Application Messages to the Client.
 func (mc *MqttClient) Subscribe(topic string) (bool, error) {
+
+	mc.topicSubscribed = topic
 
 	// Adding connection to mc
 	_, err := mc.MqttConnect()
@@ -519,60 +530,68 @@ func (mc *MqttClient) LoopStart() {
 func (mc *MqttClient) LoopForever() {
 
 	for {
-
-		// Adding connection to mc
-		_, err := mc.MqttConnect()
-
-		if err != nil {
-			log.Printf("LoopForever Error: %s\n", err)
-		}
-
-		buffer := make([]byte, READ_BUFFER_SISE)
-		n, err := (*mc.conn).Read(buffer)
-		if err != nil {
-			log.Printf("Error: %s\n", err)
-			if err == io.EOF {
-				mc.mqttConnected = false
+		if !mc.mqttConnected {
+			_, connErr := mc.TcpConnect(mc.connHost, mc.connPort)
+			if connErr != nil {
+				log.Println("Trying reset the connection...:", connErr.Error())
+				time.Sleep(time.Second * 1)
 				continue
 			}
+
+			// Try subscribe
+			mc.Subscribe(mc.topicSubscribed)
 		}
 
-		// log.Printf("Read: %d byte(s)\n", n)
+		for {
 
-		b1 := bytes.NewBuffer(buffer[:n])
-		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+			buffer := make([]byte, READ_BUFFER_SISE)
+			n, err := (*mc.conn).Read(buffer)
+			if err != nil {
+				log.Printf("Error: %s\n", err)
+				if err == io.EOF {
+					mc.mqttConnected = false
+					mc.TcpDisconnect()
+					break
+				}
+			}
 
-		control, _ := b1.ReadByte()
+			// log.Printf("Read: %d byte(s)\n", n)
 
-		log.Printf("Header control: %b\n", control)
+			b1 := bytes.NewBuffer(buffer[:n])
+			// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
-		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+			control, _ := b1.ReadByte()
 
-		nb, _ := header.RemaingLengthDecode(b1.Bytes())
-		// log.Printf("Read length: %d %d \n", nb, rLength)
-		remainingLength := b1.Next(nb)
+			log.Printf("Header control: %b\n", control)
 
-		log.Printf("Header remainingLength: %b\n", remainingLength)
+			// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
-		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+			nb, _ := header.RemaingLengthDecode(b1.Bytes())
+			// log.Printf("Read length: %d %d \n", nb, rLength)
+			remainingLength := b1.Next(nb)
 
-		// topicLen, topicMsg := util.StringDecode(b1.Bytes())
+			log.Printf("Header remainingLength: %b\n", remainingLength)
 
-		topicLen := util.Bytes2uint16(b1.Next(2))
-		b1.Next(int(topicLen))
+			// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
-		// topicMsg := string(b1.Next(int(topicLen)))
-		// log.Printf("Read Topic: %d  [%s] \n", topicLen, topicMsg)
+			// topicLen, topicMsg := util.StringDecode(b1.Bytes())
 
-		// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+			topicLen := util.Bytes2uint16(b1.Next(2))
+			b1.Next(int(topicLen))
 
-		msgMsg := string(b1.Bytes())
-		// log.Printf("Read msg: [%s]\n", msgMsg)
+			// topicMsg := string(b1.Next(int(topicLen)))
+			// log.Printf("Read Topic: %d  [%s] \n", topicLen, topicMsg)
 
-		if mc.OnMessage != nil {
-			mc.OnMessage(msgMsg)
+			// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
+
+			msgMsg := string(b1.Bytes())
+			// log.Printf("Read msg: [%s]\n", msgMsg)
+
+			if mc.OnMessage != nil {
+				mc.OnMessage(msgMsg)
+			}
+
 		}
-
 	}
 
 }
