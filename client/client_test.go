@@ -25,6 +25,8 @@ import (
 	"log"
 	"os"
 	"testing"
+
+	"github.com/easygithdev/mqtt/client/conn"
 )
 
 const (
@@ -34,13 +36,15 @@ const (
 
 func TestConnectDisconnect(t *testing.T) {
 
-	mc := NewMqttClient("test-golang-mqtt")
-	_, connErr := mc.TcpConnect(connHost, connPort)
+	mc := NewMqttClient("test-golang-mqtt",
+		WithConnInfos(conn.New(connHost)),
+	)
+	_, connErr := mc.Connect()
 	if connErr != nil {
 		log.Print("Error connecting:", connErr.Error())
 		os.Exit(1)
 	}
-	defer mc.TcpDisconnect()
+	defer mc.Close()
 
 	response, err := mc.MqttConnect()
 
@@ -62,13 +66,15 @@ func TestConnectDisconnect(t *testing.T) {
 
 func TestPing(t *testing.T) {
 
-	mc := NewMqttClient("test-golang-mqtt")
-	_, connErr := mc.TcpConnect(connHost, connPort)
+	mc := NewMqttClient("test-golang-mqtt",
+		WithConnInfos(conn.New(connHost)),
+	)
+	_, connErr := mc.Connect()
 	if connErr != nil {
 		log.Print("Error connecting:", connErr.Error())
 		os.Exit(1)
 	}
-	defer mc.TcpDisconnect()
+	defer mc.Close()
 
 	response, err := mc.Ping()
 
@@ -83,13 +89,15 @@ func TestPing(t *testing.T) {
 
 func TestPublish(t *testing.T) {
 
-	mc := NewMqttClient("test-golang-mqtt")
-	_, connErr := mc.TcpConnect(connHost, connPort)
+	mc := NewMqttClient("test-golang-mqtt",
+		WithConnInfos(conn.New(connHost)),
+	)
+	_, connErr := mc.Connect()
 	if connErr != nil {
 		log.Print("Error connecting:", connErr.Error())
 		os.Exit(1)
 	}
-	defer mc.TcpDisconnect()
+	defer mc.Close()
 
 	response, err := mc.Publish("/hello/world", "this is my hello world", 0)
 
@@ -104,13 +112,15 @@ func TestPublish(t *testing.T) {
 
 func TestSubscribe(t *testing.T) {
 
-	mc := NewMqttClient("test-golang-mqtt")
-	_, connErr := mc.TcpConnect(connHost, connPort)
+	mc := NewMqttClient("test-golang-mqtt",
+		WithConnInfos(conn.New(connHost)),
+	)
+	_, connErr := mc.Connect()
 	if connErr != nil {
 		log.Print("Error connecting:", connErr.Error())
 		os.Exit(1)
 	}
-	defer mc.TcpDisconnect()
+	defer mc.Close()
 
 	response, err := mc.Subscribe("/hello/world")
 
