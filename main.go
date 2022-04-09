@@ -29,6 +29,7 @@ import (
 	"os"
 
 	"github.com/easygithdev/mqtt/client"
+	"github.com/easygithdev/mqtt/client/conn"
 )
 
 const (
@@ -90,10 +91,14 @@ func main() {
 	///////////////////////////////////////////////////////////
 	// Init
 	///////////////////////////////////////////////////////////
-	mc := client.NewMqttClient("go-lang-mqtt")
-
-	// credentials
-	mc.SetCredentials(client.NewMqttCredentials("rw", "readwrite"))
+	mc := client.NewMqttClient(
+		// client Id
+		"go-lang-mqtt",
+		// credentials
+		client.WithCredentials("rw", "readwrite"),
+		// connection infos
+		client.WithConnInfos(conn.New(connHost, conn.WithPort(connPort))),
+	)
 
 	// handlers
 
@@ -107,12 +112,12 @@ func main() {
 
 	// Connection
 
-	_, connErr := mc.TcpConnect(connHost, connPort)
+	_, connErr := mc.Connect()
 	if connErr != nil {
 		log.Print("Error connecting:", connErr.Error())
 		os.Exit(1)
 	}
-	defer mc.TcpDisconnect()
+	defer mc.Close()
 
 	///////////////////////////////////////////////////////////
 	// Ping
@@ -128,11 +133,11 @@ func main() {
 	// Publish
 	///////////////////////////////////////////////////////////
 
-	// _, pubErr := mc.Publish("/hello/world", "this is my hello world", 2)
+	_, pubErr := mc.Publish("/hello/world", "this is my hello world", 2)
 
-	// if pubErr != nil {
-	// 	log.Print("Error publishing:", pubErr.Error())
-	// }
+	if pubErr != nil {
+		log.Print("Error publishing:", pubErr.Error())
+	}
 
 	///////////////////////////////////////////////////////////
 	// Publish Loop
@@ -168,13 +173,13 @@ func main() {
 	// 	mc.LoopForever()
 	// }
 
-	respSub, errSub := mc.Subscribe("/hello/doly")
-	if errSub != nil {
-		log.Printf("Subscribe Error: %s\n", errSub)
-	}
+	// respSub, errSub := mc.Subscribe("/hello/doly")
+	// if errSub != nil {
+	// 	log.Printf("Subscribe Error: %s\n", errSub)
+	// }
 
-	if respSub {
-		mc.LoopForever()
-	}
+	// if respSub {
+	// 	mc.LoopForever()
+	// }
 
 }

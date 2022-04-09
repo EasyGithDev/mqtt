@@ -31,6 +31,9 @@ import (
 	"net"
 	"time"
 
+	"github.com/easygithdev/mqtt/client/conn"
+	"github.com/easygithdev/mqtt/client/credentials"
+	"github.com/easygithdev/mqtt/client/protocol"
 	"github.com/easygithdev/mqtt/packet"
 	"github.com/easygithdev/mqtt/packet/header"
 	"github.com/easygithdev/mqtt/packet/payload"
@@ -38,46 +41,26 @@ import (
 	"github.com/easygithdev/mqtt/packet/vheader"
 )
 
-// Fixed connection type
-const CONN_TYPE = "tcp"
-
 // Fixed size for the read buffer
 const READ_BUFFER_SISE = 1024
 
-// Default name for connect in variable Header
-var PROTOCOL_NAME string = "MQTT"
-
-// Default level for connect in variable Header
-var PROTOCOL_LEVEL byte = 4
-
-// Default timeout for connect in variable Header
-var TIME_OUT uint16 = 60
-
-// Store login/pass in struct
-type MqttCredentials struct {
-	login    string
-	password string
-}
-
-func NewMqttCredentials(login string, password string) *MqttCredentials {
-	return &MqttCredentials{login: login, password: password}
-}
+// Default clean session for connect in variable Header
+var CLEAN_SESSION bool = true
 
 // Define the Mqtt client
 type MqttClient struct {
-	// Tcp connection
-	conn     *net.Conn
-	connType string
-	connHost string
-	connPort string
+	// Connection
+	conn      *net.Conn
+	connInfos *conn.MqttConn
 
 	// Credentials
-	credentials *MqttCredentials
+	credentials *credentials.MqttCredentials
 
 	// parameters
 	clientId     string
-	Timeout      uint16
-	CleanSession bool
+	cleanSession bool
+	userData     interface{}
+	protocol     *protocol.MqttProtocol
 
 	// behaviours
 	mqttConnected   bool
@@ -93,53 +76,85 @@ type MqttClient struct {
 	OnMessage       func(messgage string)
 }
 
-func NewMqttClient(clientId string) *MqttClient {
-	return &MqttClient{clientId: clientId, Timeout: TIME_OUT, CleanSession: true}
+type Option func(f *MqttClient)
+
+func WithCleanSession(cleanSession bool) Option {
+	return func(mc *MqttClient) {
+		mc.cleanSession = cleanSession
+	}
 }
 
-func (mc *MqttClient) SetConn(conn *net.Conn) {
-	mc.conn = conn
+func WithUserData(userData interface{}) Option {
+	return func(mc *MqttClient) {
+		mc.userData = userData
+	}
 }
 
-func (mc *MqttClient) SetCredentials(credentials *MqttCredentials) {
-	mc.credentials = credentials
+func WithProtocol(name string, level byte) Option {
+	return func(mc *MqttClient) {
+		mc.protocol = protocol.New(name, level)
+	}
 }
 
-func (mc *MqttClient) TcpConnect(host string, port string) (bool, error) {
-	mc.connHost = host
-	mc.connPort = port
-	mc.connType = CONN_TYPE
-	conn, err := net.Dial(CONN_TYPE, host+":"+port)
+func WithCredentials(login string, password string) Option {
+	return func(mc *MqttClient) {
+		mc.credentials = credentials.New(login, password)
+	}
+}
+
+func WithConnInfos(connInfos *conn.MqttConn) Option {
+	return func(mc *MqttClient) {
+		mc.connInfos = connInfos
+	}
+}
+
+// client_id=””, clean_session=True, userdata=None, protocol=MQTTv311)
+func NewMqttClient(clientId string, opts ...Option) *MqttClient {
+	mc := &MqttClient{
+		conn:         nil,
+		clientId:     clientId,
+		cleanSession: CLEAN_SESSION,
+		userData:     nil,
+		protocol:     protocol.New(protocol.PROTOCOL_NAME, protocol.PROTOCOL_LEVEL),
+	}
+
+	for _, applyOpt := range opts {
+		applyOpt(mc)
+	}
+
+	return mc
+}
+
+func (mc *MqttClient) Connect() (bool, error) {
+
+	conn, err := net.Dial(mc.connInfos.Transport, mc.connInfos.Host+":"+mc.connInfos.Port)
 
 	if err != nil {
-		log.Print("Error connecting:", err.Error())
+		log.Println("Error connecting:", err.Error())
 		return false, err
 	}
 	mc.conn = &conn
 
-	if mc.OnTcpConnect != nil {
-		mc.OnTcpConnect(conn)
-	}
-
 	return true, nil
 }
 
-func (mc *MqttClient) TcpDisconnect() {
+func (mc *MqttClient) Close() {
 	(*mc.conn).Close()
-
-	if mc.OnTcpConnect != nil {
-		mc.OnTcpDisconnect()
-	}
 }
 
+// connect(host, port=1883, keepalive=60, bind_address="")
 func (mc *MqttClient) MqttConnect() (bool, error) {
+
+	if mc.conn == nil {
+		return false, nil
+	}
 
 	if mc.mqttConnected {
 		return true, nil
 	}
 
 	var connectFlag byte = 0
-	if mc.CleanSession {
+	if mc.cleanSession {
 		connectFlag |= vheader.CONNECT_FLAG_CLEAN_SESSION
 	}
 
@@ -147,15 +162,15 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 		connectFlag |= vheader.CONNECT_FLAG_USERNAME | vheader.CONNECT_FLAG_PASSWORD
 	}
 
-	mvh := vheader.NewConnectHeader(PROTOCOL_NAME, PROTOCOL_LEVEL, connectFlag, mc.Timeout)
+	mvh := vheader.NewConnectHeader(mc.protocol.Name, mc.protocol.Level, connectFlag, mc.connInfos.KeepAlive)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddString(mc.clientId)
 
 	if mc.credentials != nil {
 		// mp.Header.Control = mp.Header.Control | (0x01 << 7) | (0x01 << 6)
-		mpl.AddString(mc.credentials.login)
-		mpl.AddString(mc.credentials.password)
+		mpl.AddString(mc.credentials.Login)
+		mpl.AddString(mc.credentials.Password)
 	}
 
 	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
@@ -241,7 +256,7 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 
 	log.Printf("Wrote %d byte(s)\n", n)
 
-	mc.TcpDisconnect()
+	// mc.TcpDisconnect()
 	mc.mqttConnected = false
 
 	return true, nil
@@ -520,7 +535,7 @@ func (mc *MqttClient) LoopStart() {
 	start := time.Now()
 	for {
 		elapsed := time.Since(start).Seconds()
-		if int(math.Ceil(elapsed)) >= int(TIME_OUT/3) {
+		if int(math.Ceil(elapsed)) >= int(mc.connInfos.KeepAlive/3) {
 			mc.Ping()
 			start = time.Now()
 		}
@@ -531,7 +546,7 @@ func (mc *MqttClient) LoopForever() {
 
 	for {
 		if !mc.mqttConnected {
-			_, connErr := mc.TcpConnect(mc.connHost, mc.connPort)
+			_, connErr := mc.Connect()
 			if connErr != nil {
 				log.Println("Trying reset the connection...:", connErr.Error())
 				time.Sleep(time.Second * 1)
@@ -550,7 +565,7 @@ func (mc *MqttClient) LoopForever() {
 				log.Printf("Error: %s\n", err)
 				if err == io.EOF {
 					mc.mqttConnected = false
-					mc.TcpDisconnect()
+					mc.Close()
 					break
 				}
 			}
