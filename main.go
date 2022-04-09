@@ -22,6 +22,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -67,37 +68,40 @@ var onPing = func() {
 	fmt.Println("Ping server ...")
 }
 
-var onPublish = func(topic string, message string, qos int) {
-	fmt.Printf("Publish on %s:%s with QoS:%d\n", topic, message, qos)
+var onPublish = func(topic string, msg string, qos int) {
+	fmt.Printf("Publish on %s:%s with QoS:%d\n", topic, msg, qos)
 }
 
 var onSubscribe = func(topic string, qos int) {
 	fmt.Printf("Subscribe to %s with QoS:%d\n", topic, qos)
 }
 
-var onMessage = func(message string) {
-	fmt.Println("Message: " + message)
+var onmsg = func(msg string) {
+	fmt.Println("msg: " + msg)
 }
 
 func main() {
 
-	// env = flag.String("env", "development", "current environment")
-	// port = flag.Int("port", 1883, "port number")
-	// type = flag.StringVar("pub", "type", "pub or sub")
-	// host = flag.StringVar("localhost", "host", "hostname")
+	pub := flag.Bool("pub", false, "publish")
+	sub := flag.Bool("sub", false, "subscribe")
+	host := flag.String("h", "", "the hostname")
+	clientId := flag.String("i", "", "the client Id")
+	topic := flag.String("t", "", "the topic name")
+	msg := flag.String("m", "", "the message to send")
+	qos := flag.Int("qos", 0, "quality of service")
 
-	// flag.Parse()
+	flag.Parse()
 
 	///////////////////////////////////////////////////////////
 	// Init
 	///////////////////////////////////////////////////////////
 	mc := client.New(
 		// client Id
-		"go-lang-mqtt",
+		*clientId,
 		// credentials
-		client.WithCredentials("rw", "readwrite"),
+		// client.WithCredentials("rw", "readwrite"),
 		// connection infos
-		client.WithConnInfos(conn.New(connHost, conn.WithPort(connPort))),
+		client.WithConnInfos(conn.New(*host)),
 	)
 
 	// handlers
@@ -108,7 +112,7 @@ func main() {
 	mc.OnPing = onPing
 	mc.OnPublish = onPublish
 	mc.OnSubscribe = onSubscribe
-	mc.OnMessage = onMessage
+	mc.OnMessage = onmsg
 
 	// Connection
 
@@ -118,6 +122,20 @@ func main() {
 		os.Exit(1)
 	}
 	defer mc.Close()
+
+	if *pub {
+		mc.Publish(*topic, *msg, *qos)
+	} else if *sub {
+
+		respSub, errSub := mc.Subscribe(*topic)
+		if errSub != nil {
+			log.Printf("Subscribe Error: %s\n", errSub)
+		}
+
+		if respSub {
+			mc.LoopForever()
+		}
+	}
 
 	///////////////////////////////////////////////////////////
 	// Ping
@@ -133,11 +151,11 @@ func main() {
 	// Publish
 	///////////////////////////////////////////////////////////
 
-	_, pubErr := mc.Publish("/hello/world", "this is my hello world", 2)
+	// _, pubErr := mc.Publish("/hello/world", "this is my hello world", 2)
 
-	if pubErr != nil {
-		log.Print("Error publishing:", pubErr.Error())
-	}
+	// if pubErr != nil {
+	// 	log.Print("Error publishing:", pubErr.Error())
+	// }
 
 	///////////////////////////////////////////////////////////
 	// Publish Loop
