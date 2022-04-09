@@ -76,6 +76,23 @@ type MqttClient struct {
 	OnMessage       func(messgage string)
 }
 
+// client_id=””, clean_session=True, userdata=None, protocol=MQTTv311)
+func New(clientId string, opts ...Option) *MqttClient {
+	mc := &MqttClient{
+		conn:         nil,
+		clientId:     clientId,
+		cleanSession: CLEAN_SESSION,
+		userData:     nil,
+		protocol:     protocol.New(protocol.PROTOCOL_NAME, protocol.PROTOCOL_LEVEL),
+	}
+
+	for _, applyOpt := range opts {
+		applyOpt(mc)
+	}
+
+	return mc
+}
+
 type Option func(f *MqttClient)
 
 func WithCleanSession(cleanSession bool) Option {
@@ -108,23 +125,6 @@ func WithConnInfos(connInfos *conn.MqttConn) Option {
 	}
 }
 
-// client_id=””, clean_session=True, userdata=None, protocol=MQTTv311)
-func NewMqttClient(clientId string, opts ...Option) *MqttClient {
-	mc := &MqttClient{
-		conn:         nil,
-		clientId:     clientId,
-		cleanSession: CLEAN_SESSION,
-		userData:     nil,
-		protocol:     protocol.New(protocol.PROTOCOL_NAME, protocol.PROTOCOL_LEVEL),
-	}
-
-	for _, applyOpt := range opts {
-		applyOpt(mc)
-	}
-
-	return mc
-}
-
 func (mc *MqttClient) Connect() (bool, error) {
 
 	conn, err := net.Dial(mc.connInfos.Transport, mc.connInfos.Host+":"+mc.connInfos.Port)
@@ -140,6 +140,19 @@ func (mc *MqttClient) Connect() (bool, error) {
 
 func (mc *MqttClient) Close() {
 	(*mc.conn).Close()
+}
+
+func (mc *MqttClient) Read() (*bytes.Buffer, error) {
+	readBuffer := make([]byte, READ_BUFFER_SISE)
+	n, readErr := (*mc.conn).Read(readBuffer)
+	if readErr != nil {
+		return nil, readErr
+	}
+	return bytes.NewBuffer(readBuffer[:n]), nil
+}
+
+func (mc *MqttClient) Write(buffer []byte) (int, error) {
+	return (*mc.conn).Write(buffer)
 }
 
 // connect(host, port=1883, keepalive=60, bind_address="")
@@ -182,7 +195,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	log.Printf("\n%s\n\n", mp)
 	// log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
 
-	n, err := (*mc.conn).Write(writeBuffer)
+	_, err := (*mc.conn).Write(writeBuffer)
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
@@ -192,14 +205,12 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 
 	// Read CONNHACK
 
-	readBuffer := make([]byte, READ_BUFFER_SISE)
-	n, readErr := (*mc.conn).Read(readBuffer)
-	if readErr != nil {
+	bb, readErr := mc.Read()
+	if err != nil {
 		log.Printf("Read Error: %s\n", readErr)
 		return false, readErr
 	}
 
-	bb := bytes.NewBuffer(readBuffer[:n])
 	control, _ := bb.ReadByte()
 
 	if control == header.CONNACK {
@@ -302,18 +313,15 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 		return false, err
 	}
 
-	// log.Printf("Wrote %d byte(s)\n", n)
+	log.Printf("Wrote %d byte(s)\n", n)
 
 	// Read SUBACK
 
-	readBuffer := make([]byte, READ_BUFFER_SISE)
-	n, readErr := (*mc.conn).Read(readBuffer)
-	if readErr != nil {
+	bb, readErr := mc.Read()
+	if err != nil {
 		log.Printf("Read Error: %s\n", readErr)
 		return false, readErr
 	}
-
-	bb := bytes.NewBuffer(readBuffer[:n])
 	control, _ := bb.ReadByte()
 
 	if control == header.SUBACK {

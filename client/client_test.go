@@ -36,7 +36,7 @@ const (
 
 func TestConnectDisconnect(t *testing.T) {
 
-	mc := NewMqttClient("test-golang-mqtt",
+	mc := New("test-golang-mqtt",
 		WithConnInfos(conn.New(connHost)),
 	)
 	_, connErr := mc.Connect()
@@ -66,7 +66,7 @@ func TestConnectDisconnect(t *testing.T) {
 
 func TestPing(t *testing.T) {
 
-	mc := NewMqttClient("test-golang-mqtt",
+	mc := New("test-golang-mqtt",
 		WithConnInfos(conn.New(connHost)),
 	)
 	_, connErr := mc.Connect()
@@ -89,7 +89,7 @@ func TestPing(t *testing.T) {
 
 func TestPublish(t *testing.T) {
 
-	mc := NewMqttClient("test-golang-mqtt",
+	mc := New("test-golang-mqtt",
 		WithConnInfos(conn.New(connHost)),
 	)
 	_, connErr := mc.Connect()
@@ -112,7 +112,7 @@ func TestPublish(t *testing.T) {
 
 func TestSubscribe(t *testing.T) {
 
-	mc := NewMqttClient("test-golang-mqtt",
+	mc := New("test-golang-mqtt",
 		WithConnInfos(conn.New(connHost)),
 	)
 	_, connErr := mc.Connect()
