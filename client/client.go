@@ -391,7 +391,7 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 		return false, err
 	}
 
-	// log.Printf("Publish wrote %d byte(s)\n", n)
+	log.Printf("Publish wrote %d byte(s)\n", n)
 
 	// Nothing to read for Qos 0
 	if qos == 0 {
@@ -402,14 +402,12 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 
 		// Read PUBACK
 
-		readBuffer := make([]byte, READ_BUFFER_SISE)
-		n, err = (*mc.conn).Read(readBuffer)
+		bb, err := mc.Read()
 		if err != nil {
 			log.Printf("Read Error: %s\n", err)
 			return false, err
 		}
 
-		bb := bytes.NewBuffer(readBuffer[:n])
 		control, _ := bb.ReadByte()
 
 		if control == header.PUBACK {
@@ -422,14 +420,11 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 	} else if qos == 2 {
 		// Read PUBREC
 
-		readBuffer := make([]byte, READ_BUFFER_SISE)
-		n, err = (*mc.conn).Read(readBuffer)
+		bb, err := mc.Read()
 		if err != nil {
 			log.Printf("Read Error: %s\n", err)
 			return false, err
 		}
-
-		bb := bytes.NewBuffer(readBuffer[:n])
 
 		control, _ := bb.ReadByte()
 		bb.Read(make([]byte, 1))
@@ -452,14 +447,12 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 			}
 
 			// Read PUBCOMB
-			readBuffer := make([]byte, READ_BUFFER_SISE)
-			n, err = (*mc.conn).Read(readBuffer)
+			bb, err := mc.Read()
 			if err != nil {
 				log.Printf("Read Error: %s\n", err)
 				return false, err
 			}
 
-			bb := bytes.NewBuffer(readBuffer[:n])
 			control, _ := bb.ReadByte()
 
 			if control == header.PUBCOMP {
@@ -519,14 +512,12 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 	// Read PINGRESP
 
-	readBuffer := make([]byte, READ_BUFFER_SISE)
-	n, err = (*mc.conn).Read(readBuffer)
+	bb, err := mc.Read()
 	if err != nil {
 		log.Printf("Read Error: %s\n", err)
 		return false, err
 	}
 
-	bb := bytes.NewBuffer(readBuffer[:n])
 	control, _ := bb.ReadByte()
 
 	if control == header.PINGRESP {
@@ -567,20 +558,20 @@ func (mc *MqttClient) LoopForever() {
 
 		for {
 
-			buffer := make([]byte, READ_BUFFER_SISE)
-			n, err := (*mc.conn).Read(buffer)
+			b1, err := mc.Read()
 			if err != nil {
 				log.Printf("Error: %s\n", err)
 				if err == io.EOF {
-					mc.mqttConnected = false
-					mc.Close()
-					break
+					// Do something smart
 				}
+				mc.mqttConnected = false
+				mc.Close()
+				break
 			}
 
 			// log.Printf("Read: %d byte(s)\n", n)
 
-			b1 := bytes.NewBuffer(buffer[:n])
+			// b1 := bytes.NewBuffer(buffer[:n])
 			// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
 			control, _ := b1.ReadByte()
