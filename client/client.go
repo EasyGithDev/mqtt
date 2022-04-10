@@ -87,7 +87,9 @@ func New(clientId string, opts ...Option) *MqttClient {
 	}
 
 	for _, applyOpt := range opts {
-		applyOpt(mc)
+		if applyOpt != nil {
+			applyOpt(mc)
+		}
 	}
 
 	return mc

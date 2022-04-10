@@ -26,8 +26,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/easygithdev/mqtt/client"
 	"github.com/easygithdev/mqtt/client/conn"
@@ -76,8 +79,19 @@ var onSubscribe = func(topic string, qos int) {
 	fmt.Printf("Subscribe to %s with QoS:%d\n", topic, qos)
 }
 
-var onmsg = func(msg string) {
+var OnMessage = func(msg string) {
 	fmt.Println("msg: " + msg)
+}
+
+func idGenerator(n int) string {
+	letters := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+	rand.Seed(time.Now().UnixNano())
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
 }
 
 func main() {
@@ -85,23 +99,51 @@ func main() {
 	pub := flag.Bool("pub", false, "publish")
 	sub := flag.Bool("sub", false, "subscribe")
 	host := flag.String("h", "", "the hostname")
-	clientId := flag.String("i", "", "the client Id")
+	port := flag.String("p", "1883", "the port")
+	id := flag.String("i", idGenerator(10), "the client Id")
 	topic := flag.String("t", "", "the topic name")
 	msg := flag.String("m", "", "the message to send")
 	qos := flag.Int("qos", 0, "quality of service")
+	login := flag.String("log", "", "the login")
+	pwd := flag.String("pwd", "", "the password")
 
 	flag.Parse()
+
+	if !*pub && !*sub {
+		fmt.Fprintf(os.Stderr, "missing required -pub/-sub flag\n")
+		os.Exit(2)
+	}
+
+	if strings.TrimSpace(*host) == "" {
+		fmt.Fprintf(os.Stderr, "missing required -h argument/flag\n")
+		os.Exit(2)
+	}
+
+	if strings.TrimSpace(*topic) == "" {
+		fmt.Fprintf(os.Stderr, "missing required -t argument/flag\n")
+		os.Exit(2)
+	}
+
+	if *pub && strings.TrimSpace(*msg) == "" {
+		fmt.Fprintf(os.Stderr, "missing required -m flag\n")
+		os.Exit(2)
+	}
+
+	var credentialsOption client.Option = nil
+	if *login != "" && *pwd != "" {
+		credentialsOption = client.WithCredentials(*login, *pwd)
+	}
 
 	///////////////////////////////////////////////////////////
 	// Init
 	///////////////////////////////////////////////////////////
 	mc := client.New(
 		// client Id
-		*clientId,
+		*id,
 		// credentials
-		// client.WithCredentials("rw", "readwrite"),
+		credentialsOption,
 		// connection infos
-		client.WithConnInfos(conn.New(*host)),
+		client.WithConnInfos(conn.New(*host, conn.WithPort(*port))),
 	)
 
 	// handlers
@@ -112,7 +154,7 @@ func main() {
 	mc.OnPing = onPing
 	mc.OnPublish = onPublish
 	mc.OnSubscribe = onSubscribe
-	mc.OnMessage = onmsg
+	mc.OnMessage = OnMessage
 
 	// Connection
 
