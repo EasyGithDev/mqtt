@@ -23,7 +23,7 @@ package client
 
 import (
 	"bytes"
-	"errors"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -228,15 +228,15 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 			mc.mqttConnected = true
 			return true, nil
 		case header.CONNECT_REFUSED_1:
-			return false, errors.New("connection Refused, unacceptable protocol version")
+			return false, fmt.Errorf("connection Refused, unacceptable protocol version")
 		case header.CONNECT_REFUSED_2:
-			return false, errors.New("connection Refused, identifier rejected")
+			return false, fmt.Errorf("connection Refused, identifier rejected")
 		case header.CONNECT_REFUSED_3:
-			return false, errors.New("connection Refused, Server unavailable")
+			return false, fmt.Errorf("connection Refused, Server unavailable")
 		case header.CONNECT_REFUSED_4:
-			return false, errors.New("connection Refused, bad user name or password")
+			return false, fmt.Errorf("connection Refused, bad user name or password")
 		case header.CONNECT_REFUSED_5:
-			return false, errors.New("connection Refused, not authorized")
+			return false, fmt.Errorf("connection Refused, not authorized")
 		default:
 			return false, nil
 		}

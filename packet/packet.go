@@ -23,6 +23,9 @@ package packet
 
 import (
 	"bytes"
+
+	"github.com/easygithdev/mqtt/packet/header"
+	"github.com/easygithdev/mqtt/packet/vheader"
 )
 
 /////////////////////////////////////////////////
@@ -81,16 +84,37 @@ func (mp *MqttPacket) Encode() []byte {
 
 func (mp *MqttPacket) Decode(data []byte) {
 
-	// mp.Header.Decode(data)
+	bb := bytes.NewBuffer(data)
+	control, _ := bb.ReadByte()
 
-	// // check the first byte
-	// switch data[0] {
-	// case header.CONNACK:
-	// case header.PUBACK:
-	// case header.SUBACK:
+	// check the first byte
+	switch data[0] {
+	case header.CONNECT:
+	case header.CONNACK:
 
-	// }
+		header := header.NewMqttHeader(2)
+		header.Control = control
+		header.RemainingLength = make([]byte, 1)
+		header.RemainingLength[0], _ = bb.ReadByte()
+		vHeader := vheader.NewGenericHeader(bb.Bytes())
 
+		mp.Header = header
+		mp.VariableHeader = vHeader
+
+	case header.PUBLISH:
+	case header.PUBACK:
+	case header.PUBREC:
+	case header.PUBREL:
+	case header.PUBCOMP:
+	case header.SUBSCRIBE:
+	case header.SUBACK:
+	case header.UNSUBSCRIBE:
+	case header.UNSUBACK:
+	case header.PINGREQ:
+	case header.PINGRESP:
+	case header.DISCONNECT:
+	case header.AUTH:
+	}
 }
 
 func (mp *MqttPacket) String() string {
