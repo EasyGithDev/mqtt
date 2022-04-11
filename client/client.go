@@ -66,14 +66,13 @@ type MqttClient struct {
 	mqttConnected   bool
 	topicSubscribed string
 
-	// handlers
-	OnTcpConnect    func(conn net.Conn)
-	OnTcpDisconnect func()
-	OnConnect       func()
-	OnPing          func()
-	OnPublish       func(topic string, message string, qos int)
-	OnSubscribe     func(topic string, qos int)
-	OnMessage       func(messgage string)
+	// callbacks
+	OnConnect     func(mc MqttClient, userData interface{}, rc net.Conn)
+	OnDisconnect  func(mc MqttClient, userData interface{}, rc net.Conn)
+	OnPublish     func(mc MqttClient, userData interface{}, mid int)
+	OnSubscribe   func(mc MqttClient, userData interface{}, mid int)
+	OnUnsubscribe func(mc MqttClient, userData interface{}, mid int)
+	OnMessage     func(mc MqttClient, userData interface{}, message string)
 }
 
 // client_id=””, clean_session=True, userdata=None, protocol=MQTTv311)
@@ -224,7 +223,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 		switch accepted {
 		case header.CONNECT_ACCEPTED:
 			if mc.OnConnect != nil {
-				mc.OnConnect()
+				mc.OnConnect(*mc, nil, *mc.conn)
 			}
 			mc.mqttConnected = true
 			return true, nil
@@ -328,7 +327,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 
 	if control == header.SUBACK {
 		if mc.OnSubscribe != nil {
-			mc.OnSubscribe(topic, 0)
+			mc.OnSubscribe(*mc, nil, 0)
 		}
 		return true, nil
 	}
@@ -398,7 +397,7 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 	// Nothing to read for Qos 0
 	if qos == 0 {
 		if mc.OnPublish != nil {
-			mc.OnPublish(topic, message, qos)
+			mc.OnPublish(*mc, nil, 0)
 		}
 	} else if qos == 1 {
 
@@ -414,7 +413,7 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 
 		if control == header.PUBACK {
 			if mc.OnPublish != nil {
-				mc.OnPublish(topic, message, qos)
+				mc.OnPublish(*mc, nil, 0)
 			}
 			return true, nil
 		}
@@ -459,7 +458,7 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 
 			if control == header.PUBCOMP {
 				if mc.OnPublish != nil {
-					mc.OnPublish(topic, message, qos)
+					mc.OnPublish(*mc, nil, 0)
 				}
 			}
 
@@ -523,9 +522,6 @@ func (mc *MqttClient) Ping() (bool, error) {
 	control, _ := bb.ReadByte()
 
 	if control == header.PINGRESP {
-		if mc.OnPing != nil {
-			mc.OnPing()
-		}
 		return true, nil
 	}
 
@@ -600,11 +596,11 @@ func (mc *MqttClient) LoopForever() {
 
 			// log.Printf("Len of buffer: %d byte(s)\n", b1.Len())
 
-			msgMsg := string(b1.Bytes())
+			msg := string(b1.Bytes())
 			// log.Printf("Read msg: [%s]\n", msgMsg)
 
 			if mc.OnMessage != nil {
-				mc.OnMessage(msgMsg)
+				mc.OnMessage(*mc, nil, msg)
 			}
 
 		}

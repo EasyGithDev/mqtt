@@ -55,32 +55,24 @@ func init() {
 
 }
 
-var onTcpConnect = func(conn net.Conn) {
-	fmt.Println("Connecting to server " + conn.RemoteAddr().String())
+var onConnect = func(mc client.MqttClient, userData interface{}, rc net.Conn) {
+	fmt.Println("Connecting to server " + rc.RemoteAddr().String())
 }
 
-var onTcpDisconnect = func() {
-	fmt.Println("Disconnect from server")
+var onDisconnect = func(mc client.MqttClient, userData interface{}, rc net.Conn) {
+	fmt.Println("Disconnect from server" + rc.RemoteAddr().String())
 }
 
-var onConnect = func() {
-	fmt.Println("Connecting to MQTT server ...")
+var onPublish = func(mc client.MqttClient, userData interface{}, mid int) {
+	fmt.Printf("Publish\n")
 }
 
-var onPing = func() {
-	fmt.Println("Ping server ...")
+var onSubscribe = func(mc client.MqttClient, userData interface{}, mid int) {
+	fmt.Printf("Subscribe\n")
 }
 
-var onPublish = func(topic string, msg string, qos int) {
-	fmt.Printf("Publish on %s:%s with QoS:%d\n", topic, msg, qos)
-}
-
-var onSubscribe = func(topic string, qos int) {
-	fmt.Printf("Subscribe to %s with QoS:%d\n", topic, qos)
-}
-
-var OnMessage = func(msg string) {
-	fmt.Println("msg: " + msg)
+var onMessage = func(mc client.MqttClient, userData interface{}, message string) {
+	fmt.Println("msg: " + message)
 }
 
 func idGenerator(n int) string {
@@ -146,15 +138,13 @@ func main() {
 		client.WithConnInfos(conn.New(*host, conn.WithPort(*port))),
 	)
 
-	// handlers
+	// Callbacks
 
-	mc.OnTcpConnect = onTcpConnect
-	mc.OnTcpDisconnect = onTcpDisconnect
 	mc.OnConnect = onConnect
-	mc.OnPing = onPing
+	mc.OnDisconnect = onDisconnect
 	mc.OnPublish = onPublish
 	mc.OnSubscribe = onSubscribe
-	mc.OnMessage = OnMessage
+	mc.OnMessage = onMessage
 
 	// Connection
 
@@ -164,6 +154,10 @@ func main() {
 		os.Exit(1)
 	}
 	defer mc.Close()
+
+	///////////////////////////////////////////////////////////
+	// Run
+	///////////////////////////////////////////////////////////
 
 	if *pub {
 		mc.Publish(*topic, *msg, *qos)
