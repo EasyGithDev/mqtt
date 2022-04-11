@@ -176,6 +176,8 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 		connectFlag |= vheader.CONNECT_FLAG_USERNAME | vheader.CONNECT_FLAG_PASSWORD
 	}
 
+	mh := header.New(header.CONNECT)
+
 	mvh := vheader.NewConnectHeader(mc.protocol.Name, mc.protocol.Level, connectFlag, mc.connInfos.KeepAlive)
 
 	mpl := payload.NewMqttPayload()
@@ -186,9 +188,6 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 		mpl.AddString(mc.credentials.Login)
 		mpl.AddString(mc.credentials.Password)
 	}
-
-	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
-	mh.UseConnect()
 
 	mp := packet.NewMqttPacket(mh, mvh, mpl)
 	writeBuffer := mp.Encode()
@@ -251,8 +250,7 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 		return true, nil
 	}
 
-	mh := header.NewMqttHeader(0)
-	mh.UseDisconnect()
+	mh := header.New(header.DISCONNECT)
 
 	mp := packet.NewMqttPacket(mh, nil, nil)
 
@@ -292,25 +290,24 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	//These Control Packets are PUBLISH (where QoS > 0), PUBACK, PUBREC, PUBREL, PUBCOMP, SUBSCRIBE, SUBACK, UNSUBSCRIBE, UNSUBACK.
 	var packetId uint16 = uint16(rand.Intn(math.MaxInt16))
 
+	mh := header.New(header.SUBSCRIBE)
+
 	mvh := vheader.NewSubscribeHeader(packetId, topic)
-	// mvh.BuildSubscribe(packetId, topic)
 
 	mpl := payload.NewMqttPayload()
 	mpl.AddQos(0x00)
 
-	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
-	mh.UseSubscribe()
-
 	mp := packet.NewMqttPacket(mh, mvh, mpl)
+	log.Printf("Packet: %s\n", mp)
+
 	writeBuffer := mp.Encode()
 
-	log.Printf("\n%s\n\n", mp)
+	log.Printf("Packet: %s\n", mp)
+	log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
 
-	// log.Printf("Packet: %s\n", util.ShowHexa(buffer))
-
-	n, err := (*mc.conn).Write(writeBuffer)
-	if err != nil {
-		log.Printf("Write Error: %s\n", err)
+	n, writeErr := (*mc.conn).Write(writeBuffer)
+	if writeErr != nil {
+		log.Printf("Write Error: %s\n", writeErr)
 		return false, err
 	}
 
@@ -319,7 +316,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 	// Read SUBACK
 
 	bb, readErr := mc.Read()
-	if err != nil {
+	if readErr != nil {
 		log.Printf("Read Error: %s\n", readErr)
 		return false, readErr
 	}
@@ -362,13 +359,7 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 		return false, nil
 	}
 
-	mvh := vheader.NewPublishHeader(topic)
-
-	mpl := payload.NewMqttPayload()
-	mpl.AddString(message)
-
-	mh := header.NewMqttHeader(mvh.Len() + mpl.Len())
-	mh.UsePublish()
+	mh := header.New(header.PUBLISH)
 
 	if qos == 1 {
 		mh.UseQos1()
@@ -380,6 +371,10 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 
 	// retain
 	//mh.Control |= 1 << 3
+
+	mvh := vheader.NewPublishHeader(topic)
+	mpl := payload.NewMqttPayload()
+	mpl.AddString(message)
 
 	mp := packet.NewMqttPacket(mh, mvh, mpl)
 	writeBuffer := mp.Encode()
@@ -436,9 +431,8 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 
 			// Send a PUBREL
 			// The variable header contains the same Packet Identifier as the PUBREC Packet that is being acknowledged
+			mh := header.New(header.PUBREL)
 			mvh := vheader.NewGenericHeader(vh)
-			mh := header.NewMqttHeader(mvh.Len())
-			mh.UsePubrel()
 			mp := packet.NewMqttPacket(mh, mvh, nil)
 			writeBuffer := mp.Encode()
 			_, err := (*mc.conn).Write(writeBuffer)
@@ -493,9 +487,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 		return false, nil
 	}
 
-	mh := header.NewMqttHeader(0)
-	mh.UsePingreq()
-
+	mh := header.New(header.PINGREQ)
 	mp := packet.NewMqttPacket(mh, nil, nil)
 	writeBuffer := mp.Encode()
 

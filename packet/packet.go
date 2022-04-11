@@ -23,6 +23,7 @@ package packet
 
 import (
 	"bytes"
+	"fmt"
 
 	"github.com/easygithdev/mqtt/packet/header"
 	"github.com/easygithdev/mqtt/packet/vheader"
@@ -38,12 +39,12 @@ type PaquetContent interface {
 	String() string
 }
 
-func Encode(header PaquetContent) []byte {
-	return header.Encode()
+func Encode(pContent PaquetContent) []byte {
+	return pContent.Encode()
 }
 
-func Len(header PaquetContent) int {
-	return header.Len()
+func Len(pContent PaquetContent) int {
+	return pContent.Len()
 }
 
 /////////////////////////////////////////////////
@@ -51,12 +52,12 @@ func Len(header PaquetContent) int {
 /////////////////////////////////////////////////
 
 type MqttPacket struct {
-	Header         PaquetContent
+	Header         *header.MqttHeader
 	VariableHeader PaquetContent
 	Payload        PaquetContent
 }
 
-func NewMqttPacket(header PaquetContent, variableHeader PaquetContent, payload PaquetContent) *MqttPacket {
+func NewMqttPacket(header *header.MqttHeader, variableHeader PaquetContent, payload PaquetContent) *MqttPacket {
 	return &MqttPacket{Header: header, VariableHeader: variableHeader, Payload: payload}
 }
 
@@ -65,18 +66,26 @@ func (mp *MqttPacket) Encode() []byte {
 	// compute the fields
 	var mqttBuffer bytes.Buffer
 
-	mqttBuffer.Write(PaquetContent.Encode(mp.Header))
+	var vhLen, pLen int = 0, 0
 
 	if mp.VariableHeader != nil {
-		if PaquetContent.Len(mp.VariableHeader) > 0 {
-			mqttBuffer.Write(PaquetContent.Encode(mp.VariableHeader))
-		}
+		vhLen = PaquetContent.Len(mp.VariableHeader)
 	}
 
 	if mp.Payload != nil {
-		if PaquetContent.Len(mp.Payload) > 0 {
-			mqttBuffer.Write(PaquetContent.Encode(mp.Payload))
-		}
+		pLen = PaquetContent.Len(mp.Payload)
+	}
+
+	mp.Header.RemainingLength = header.RemainingLengthEncode(vhLen + pLen)
+
+	mqttBuffer.Write(PaquetContent.Encode(mp.Header))
+
+	if vhLen > 0 {
+		mqttBuffer.Write(PaquetContent.Encode(mp.VariableHeader))
+	}
+
+	if pLen > 0 {
+		mqttBuffer.Write(PaquetContent.Encode(mp.Payload))
 	}
 
 	return mqttBuffer.Bytes()
@@ -92,7 +101,7 @@ func (mp *MqttPacket) Decode(data []byte) {
 	case header.CONNECT:
 	case header.CONNACK:
 
-		header := header.NewMqttHeader(2)
+		header := header.New(control, header.WithRemainingLength(2))
 		header.Control = control
 		header.RemainingLength = make([]byte, 1)
 		header.RemainingLength[0], _ = bb.ReadByte()
@@ -120,8 +129,12 @@ func (mp *MqttPacket) Decode(data []byte) {
 func (mp *MqttPacket) String() string {
 	return "****************\tHeader\t****************\n" +
 		mp.Header.String() +
+		fmt.Sprintf("\nLen:%d", mp.Header.Len()) +
 		"\n****************\tvHeader\t****************\n" +
 		mp.VariableHeader.String() +
+		fmt.Sprintf("\nLen:%d", mp.VariableHeader.Len()) +
 		"\n****************\tPayload\t****************\n" +
-		mp.Payload.String()
+		mp.Payload.String() +
+		fmt.Sprintf("\nLen:%d", mp.Payload.Len())
+
 }

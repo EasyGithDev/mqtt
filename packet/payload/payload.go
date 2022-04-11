@@ -42,6 +42,7 @@ func NewMqttPayload() *MqttPayload {
 }
 
 func (mp *MqttPayload) Encode() []byte {
+
 	buffer := bytes.NewBuffer([]byte{})
 	for _, v := range mp.Payload {
 		buffer.Write(util.StringEncode(v))
@@ -74,7 +75,7 @@ func (mp *MqttPayload) String() string {
 	}
 
 	if mp.Qos != nil {
-		str += fmt.Sprintf("0x%x", mp.Qos)
+		str += fmt.Sprintf("0x%x", *mp.Qos)
 	}
 
 	return str

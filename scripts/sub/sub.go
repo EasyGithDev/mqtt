@@ -31,10 +31,13 @@ import (
 
 func main() {
 
+	// Show line numbers
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
 	clientId := "test-golang-mqtt"
 
-	connHost := "test.mosquitto.org"
-
+	// connHost := "test.mosquitto.org"
+	connHost := "mqtt.eclipseprojects.io"
 	connPort := "1883"
 
 	topic1 := "hello/mqtt1"

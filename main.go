@@ -52,6 +52,8 @@ func init() {
 		log.SetFlags(0)
 		log.SetOutput(ioutil.Discard)
 	}
+	// Show line numbers
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 }
 

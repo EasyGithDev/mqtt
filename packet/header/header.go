@@ -76,8 +76,24 @@ type MqttHeader struct {
 	RemainingLength []byte
 }
 
-func NewMqttHeader(remainingLength int) *MqttHeader {
-	return &MqttHeader{RemainingLength: RemainingLengthEncode(remainingLength)}
+type OptionHeader func(mh *MqttHeader)
+
+func New(controle byte, opts ...OptionHeader) *MqttHeader {
+	mh := &MqttHeader{Control: controle}
+
+	for _, applyOpt := range opts {
+		if applyOpt != nil {
+			applyOpt(mh)
+		}
+	}
+
+	return mh
+}
+
+func WithRemainingLength(rl int) OptionHeader {
+	return func(mh *MqttHeader) {
+		mh.RemainingLength = RemainingLengthEncode(rl)
+	}
 }
 
 func (mh *MqttHeader) Encode() []byte {
