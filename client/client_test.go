@@ -32,11 +32,13 @@ import (
 const (
 	connHost = "mqtt.eclipseprojects.io"
 	connPort = "1883"
+	clientId = "test-golang-mqtt"
+	topic    = "/hello/world"
 )
 
 func TestConnectDisconnect(t *testing.T) {
 
-	mc := New("test-golang-mqtt",
+	mc := New(clientId,
 		WithConnInfos(conn.New(connHost)),
 	)
 	_, connErr := mc.Connect()
@@ -66,7 +68,7 @@ func TestConnectDisconnect(t *testing.T) {
 
 func TestPing(t *testing.T) {
 
-	mc := New("test-golang-mqtt",
+	mc := New(clientId,
 		WithConnInfos(conn.New(connHost)),
 	)
 	_, connErr := mc.Connect()
@@ -89,7 +91,7 @@ func TestPing(t *testing.T) {
 
 func TestPublish(t *testing.T) {
 
-	mc := New("test-golang-mqtt",
+	mc := New(clientId,
 		WithConnInfos(conn.New(connHost)),
 	)
 	_, connErr := mc.Connect()
@@ -99,7 +101,7 @@ func TestPublish(t *testing.T) {
 	}
 	defer mc.Close()
 
-	response, err := mc.Publish("/hello/world", "this is my hello world", 0)
+	response, err := mc.Publish(topic, "this is my hello world", 0)
 
 	if err != nil {
 		t.Errorf("Mqtt publish fail %s", err)
@@ -112,7 +114,7 @@ func TestPublish(t *testing.T) {
 
 func TestSubscribe(t *testing.T) {
 
-	mc := New("test-golang-mqtt",
+	mc := New(clientId,
 		WithConnInfos(conn.New(connHost)),
 	)
 	_, connErr := mc.Connect()
@@ -122,7 +124,7 @@ func TestSubscribe(t *testing.T) {
 	}
 	defer mc.Close()
 
-	response, err := mc.Subscribe("/hello/world", 0)
+	response, err := mc.Subscribe(topic, 0)
 
 	if err != nil {
 		t.Errorf("Mqtt subscribe fail %s", err)
@@ -130,6 +132,40 @@ func TestSubscribe(t *testing.T) {
 
 	if !response {
 		t.Errorf("Mqtt subscribe fail")
+	}
+
+}
+
+func TestUnsubscribe(t *testing.T) {
+
+	mc := New(clientId,
+		WithConnInfos(conn.New(connHost)),
+	)
+	_, connErr := mc.Connect()
+	if connErr != nil {
+		log.Print("Error connecting:", connErr.Error())
+		os.Exit(1)
+	}
+	defer mc.Close()
+
+	response, err := mc.Subscribe(topic, 0)
+
+	if err != nil {
+		t.Errorf("Mqtt unsubscribe fail %s", err)
+	}
+
+	if !response {
+		t.Errorf("Mqtt unsubscribe fail")
+	}
+
+	response, err = mc.Unsubscribe(topic)
+
+	if err != nil {
+		t.Errorf("Mqtt unsubscribe fail %s", err)
+	}
+
+	if !response {
+		t.Errorf("Mqtt unsubscribe fail")
 	}
 
 }

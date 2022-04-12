@@ -285,9 +285,7 @@ func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 	mc.qosSubscribed = qos
 
 	// Adding connection to mc
-	_, err := mc.MqttConnect()
-
-	if err != nil {
+	if _, err := mc.MqttConnect(); err != nil {
 		return false, err
 	}
 
@@ -310,7 +308,7 @@ func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 	n, writeErr := (*mc.conn).Write(writeBuffer)
 	if writeErr != nil {
 		log.Printf("Write Error: %s\n", writeErr)
-		return false, err
+		return false, writeErr
 	}
 
 	log.Printf("Wrote %d byte(s)\n", n)
@@ -334,6 +332,56 @@ func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 	return false, nil
 }
 
+func (mc *MqttClient) Unsubscribe(topic string) (bool, error) {
+
+	// Adding connection to mc
+	if _, err := mc.MqttConnect(); err != nil {
+		return false, err
+	}
+
+	// var packetId uint16 = uint16(rand.Intn(math.MaxInt16))
+
+	// mh := header.New(header.WithUnsubscribe())
+
+	// mvh := vheader.NewSubscribeHeader(packetId, topic)
+
+	// mpl := payload.New(payload.WithQos(QOS_0))
+
+	// mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
+	// writeBuffer := mp.Encode()
+
+	// log.Printf("Packet: %s\n", mp)
+	// log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
+
+	// n, writeErr := (*mc.conn).Write(writeBuffer)
+	// if writeErr != nil {
+	// 	log.Printf("Write Error: %s\n", writeErr)
+	// 	return false, writeErr
+	// }
+
+	// log.Printf("Wrote %d byte(s)\n", n)
+
+	// // Read UNSUBACK
+
+	// bb, readErr := mc.Read()
+	// if readErr != nil {
+	// 	log.Printf("Read Error: %s\n", readErr)
+	// 	return false, readErr
+	// }
+	// control, _ := bb.ReadByte()
+
+	// if control == header.UNSUBACK {
+	// 	// if mc.OnSubscribe != nil {
+	// 	// 	mc.OnSubscribe(*mc, nil, 0)
+	// 	// }
+	// 	return true, nil
+	// }
+	return true, nil
+
+	// return false, nil
+
+}
+
 // QoS 0: There won’t be any response
 // QoS 1: PUBACK – Publish acknowledgement response
 // QoS 2 :
@@ -355,9 +403,7 @@ func (mc *MqttClient) PublishQos2(topic string, message string) (bool, error) {
 func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, error) {
 
 	// Adding connection to mc
-	_, err := mc.MqttConnect()
-
-	if err != nil {
+	if _, err := mc.MqttConnect(); err != nil {
 		return false, err
 	}
 
@@ -482,9 +528,7 @@ The PINGREQ Packet has no payload.
 func (mc *MqttClient) Ping() (bool, error) {
 
 	// Adding connection to mc
-	_, err := mc.MqttConnect()
-
-	if err != nil {
+	if _, err := mc.MqttConnect(); err != nil {
 		return false, err
 	}
 
