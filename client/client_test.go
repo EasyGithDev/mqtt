@@ -33,7 +33,7 @@ const (
 	connHost = "mqtt.eclipseprojects.io"
 	connPort = "1883"
 	clientId = "test-golang-mqtt"
-	topic    = "/hello/world"
+	topic    = "hello/world"
 )
 
 func TestConnectDisconnect(t *testing.T) {

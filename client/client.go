@@ -339,46 +339,45 @@ func (mc *MqttClient) Unsubscribe(topic string) (bool, error) {
 		return false, err
 	}
 
-	// var packetId uint16 = uint16(rand.Intn(math.MaxInt16))
+	var packetId uint16 = uint16(rand.Intn(math.MaxInt16))
 
-	// mh := header.New(header.WithUnsubscribe())
+	mh := header.New(header.WithUnsubscribe())
 
-	// mvh := vheader.NewSubscribeHeader(packetId, topic)
+	mvh := vheader.NewPacketIdHeader(packetId)
 
-	// mpl := payload.New(payload.WithQos(QOS_0))
+	mpl := payload.New(payload.WithString(topic))
 
-	// mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
-	// writeBuffer := mp.Encode()
+	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
+	writeBuffer := mp.Encode()
 
-	// log.Printf("Packet: %s\n", mp)
-	// log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
+	log.Printf("Packet: %s\n", mp)
+	log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
 
-	// n, writeErr := (*mc.conn).Write(writeBuffer)
-	// if writeErr != nil {
-	// 	log.Printf("Write Error: %s\n", writeErr)
-	// 	return false, writeErr
-	// }
+	n, writeErr := (*mc.conn).Write(writeBuffer)
+	if writeErr != nil {
+		log.Printf("Write Error: %s\n", writeErr)
+		return false, writeErr
+	}
 
-	// log.Printf("Wrote %d byte(s)\n", n)
+	log.Printf("Wrote %d byte(s)\n", n)
 
-	// // Read UNSUBACK
+	// Read UNSUBACK
 
-	// bb, readErr := mc.Read()
-	// if readErr != nil {
-	// 	log.Printf("Read Error: %s\n", readErr)
-	// 	return false, readErr
-	// }
-	// control, _ := bb.ReadByte()
+	bb, readErr := mc.Read()
+	if readErr != nil {
+		log.Printf("Read Error: %s\n", readErr)
+		return false, readErr
+	}
+	control, _ := bb.ReadByte()
 
-	// if control == header.UNSUBACK {
-	// 	// if mc.OnSubscribe != nil {
-	// 	// 	mc.OnSubscribe(*mc, nil, 0)
-	// 	// }
-	// 	return true, nil
-	// }
-	return true, nil
+	if control == header.UNSUBACK {
+		if mc.OnUnsubscribe != nil {
+			mc.OnUnsubscribe(*mc, nil, 0)
+		}
+		return true, nil
+	}
 
-	// return false, nil
+	return false, nil
 
 }
 
