@@ -22,6 +22,8 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -33,6 +35,10 @@ func main() {
 
 	// Show line numbers
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	// Disable log
+	log.SetFlags(0)
+	log.SetOutput(ioutil.Discard)
 
 	clientId := "test-golang-mqtt"
 
@@ -52,6 +58,10 @@ func main() {
 		// connection infos
 		client.WithConnInfos(conn.New(connHost, conn.WithPort(connPort))),
 	)
+
+	mc.OnMessage = func(mc client.MqttClient, userData interface{}, message string) {
+		fmt.Println("msg: " + message)
+	}
 
 	// Connection
 

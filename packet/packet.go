@@ -57,8 +57,30 @@ type MqttPacket struct {
 	Payload        PaquetContent
 }
 
-func NewMqttPacket(header *header.MqttHeader, variableHeader PaquetContent, payload PaquetContent) *MqttPacket {
-	return &MqttPacket{Header: header, VariableHeader: variableHeader, Payload: payload}
+type OptionPacket func(mp *MqttPacket)
+
+func NewMqttPacket(header *header.MqttHeader, opts ...OptionPacket) *MqttPacket {
+	mp := &MqttPacket{Header: header}
+
+	for _, applyOpt := range opts {
+		if applyOpt != nil {
+			applyOpt(mp)
+		}
+	}
+
+	return mp
+}
+
+func WithVariableHeader(variableHeader PaquetContent) OptionPacket {
+	return func(mp *MqttPacket) {
+		mp.VariableHeader = variableHeader
+	}
+}
+
+func WithVariablePayload(payload PaquetContent) OptionPacket {
+	return func(mp *MqttPacket) {
+		mp.Payload = payload
+	}
 }
 
 func (mp *MqttPacket) Encode() []byte {
@@ -101,7 +123,7 @@ func (mp *MqttPacket) Decode(data []byte) {
 	case header.CONNECT:
 	case header.CONNACK:
 
-		header := header.New(control, header.WithRemainingLength(2))
+		header := header.New(header.WithControl(control), header.WithRemainingLength(2))
 		header.Control = control
 		header.RemainingLength = make([]byte, 1)
 		header.RemainingLength[0], _ = bb.ReadByte()
@@ -127,14 +149,27 @@ func (mp *MqttPacket) Decode(data []byte) {
 }
 
 func (mp *MqttPacket) String() string {
-	return "****************\tHeader\t****************\n" +
+
+	strHeader := "****************\tHeader\t****************\n" +
 		mp.Header.String() +
-		fmt.Sprintf("\nLen:%d", mp.Header.Len()) +
-		"\n****************\tvHeader\t****************\n" +
-		mp.VariableHeader.String() +
-		fmt.Sprintf("\nLen:%d", mp.VariableHeader.Len()) +
-		"\n****************\tPayload\t****************\n" +
-		mp.Payload.String() +
-		fmt.Sprintf("\nLen:%d", mp.Payload.Len())
+		fmt.Sprintf("\nLen:%d", mp.Header.Len())
+
+	strVheader := ""
+	if mp.VariableHeader != nil {
+		strVheader += "\n****************\tvHeader\t****************\n" +
+			mp.VariableHeader.String() +
+			fmt.Sprintf("\nLen:%d", mp.VariableHeader.Len())
+	}
+
+	strPayload := ""
+	if mp.Payload != nil {
+		strPayload += "\n****************\tPayload\t****************\n" +
+			mp.Payload.String() +
+			fmt.Sprintf("\nLen:%d", mp.Payload.Len())
+	}
+
+	return strHeader +
+		strVheader +
+		strPayload
 
 }

@@ -36,11 +36,21 @@ func main() {
 
 	clientId := "test-golang-mqtt"
 
-	connHost := "test.mosquitto.org"
+	// connHost := "test.mosquitto.org"
+	connHost := "mqtt.eclipseprojects.io"
 
 	connPort := "1883"
 
 	topic := "hello/mqtt"
+
+	qos := 2
+
+	// Show line numbers
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	// Disable log
+	// log.SetFlags(0)
+	// log.SetOutput(ioutil.Discard)
 
 	///////////////////////////////////////////////////////////
 	// Init
@@ -48,6 +58,7 @@ func main() {
 	mc := client.New(
 		// client Id
 		clientId,
+		client.WithCredentials("rw", "readwrite"),
 		// connection infos
 		client.WithConnInfos(conn.New(connHost, conn.WithPort(connPort))),
 	)
@@ -70,7 +81,7 @@ func main() {
 	for {
 		temperature := rand.Intn(60)
 		msg := "The temperature is " + fmt.Sprintf("%d", temperature)
-		_, pubErr := mc.Publish(topic, msg, 0)
+		_, pubErr := mc.Publish(topic, msg, qos)
 
 		if pubErr != nil {
 			log.Print("Error publishing:", pubErr.Error())

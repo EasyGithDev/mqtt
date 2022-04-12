@@ -78,8 +78,8 @@ type MqttHeader struct {
 
 type OptionHeader func(mh *MqttHeader)
 
-func New(controle byte, opts ...OptionHeader) *MqttHeader {
-	mh := &MqttHeader{Control: controle}
+func New(opts ...OptionHeader) *MqttHeader {
+	mh := &MqttHeader{}
 
 	for _, applyOpt := range opts {
 		if applyOpt != nil {
@@ -93,6 +93,62 @@ func New(controle byte, opts ...OptionHeader) *MqttHeader {
 func WithRemainingLength(rl int) OptionHeader {
 	return func(mh *MqttHeader) {
 		mh.RemainingLength = RemainingLengthEncode(rl)
+	}
+}
+
+func WithControl(control byte) OptionHeader {
+	return func(mh *MqttHeader) {
+		mh.Control = control
+	}
+}
+
+func WithPubrel() OptionHeader {
+	return func(mh *MqttHeader) {
+		mh.Control = PUBREL | 1<<1
+	}
+}
+
+func WithSubscribe() OptionHeader {
+	return func(mh *MqttHeader) {
+		mh.Control = SUBSCRIBE | 1<<1
+	}
+}
+
+func WithUnsubscribe() OptionHeader {
+	return func(mh *MqttHeader) {
+		mh.Control = UNSUBSCRIBE | 1<<1
+	}
+}
+
+func WithRetain() OptionHeader {
+	return func(mh *MqttHeader) {
+		if mh.Control == PUBLISH {
+			mh.Control |= 1 << 1
+		}
+	}
+}
+
+func WithQos1() OptionHeader {
+	return func(mh *MqttHeader) {
+		if mh.Control == PUBLISH {
+			mh.Control |= 1 << 1
+		}
+	}
+}
+
+func WithQos2() OptionHeader {
+	return func(mh *MqttHeader) {
+		if mh.Control == PUBLISH {
+			mh.Control |= 1 << 2
+		}
+	}
+}
+
+func WithDup() OptionHeader {
+	return func(mh *MqttHeader) {
+		if mh.Control == PUBLISH {
+			mh.Control |= 1 << 3
+		}
 	}
 }
 
@@ -119,90 +175,6 @@ func (mh *MqttHeader) Len() int {
 
 func (mh *MqttHeader) String() string {
 	return fmt.Sprintf("control: %b \nremainingLength: %b", mh.Control, mh.RemainingLength)
-}
-
-func (mh *MqttHeader) UseConnect() {
-	mh.Control = CONNECT
-}
-
-func (mh *MqttHeader) UseConnack() {
-	mh.Control = CONNACK
-}
-
-func (mh *MqttHeader) UsePublish() {
-	mh.Control = PUBLISH
-}
-
-func (mh *MqttHeader) UsePuback() {
-	mh.Control = PUBACK
-}
-
-func (mh *MqttHeader) UsePubrec() {
-	mh.Control = PUBREC
-}
-
-func (mh *MqttHeader) UsePubrel() {
-	mh.Control = PUBREL | 1<<1
-}
-
-func (mh *MqttHeader) UsePubcomp() {
-	mh.Control = PUBCOMP
-}
-
-func (mh *MqttHeader) UseSubscribe() {
-	mh.Control = SUBSCRIBE | 1<<1
-}
-
-func (mh *MqttHeader) UseSuback() {
-	mh.Control = SUBACK
-}
-
-func (mh *MqttHeader) UseUnsubscribe() {
-	mh.Control = UNSUBSCRIBE | 1<<1
-}
-
-func (mh *MqttHeader) UseUnsuback() {
-	mh.Control = UNSUBSCRIBE
-}
-
-func (mh *MqttHeader) UsePingreq() {
-	mh.Control = PINGREQ
-}
-
-func (mh *MqttHeader) UsePingresp() {
-	mh.Control = PINGRESP
-}
-
-func (mh *MqttHeader) UseDisconnect() {
-	mh.Control = DISCONNECT
-}
-
-func (mh *MqttHeader) UseAuth() {
-	mh.Control = AUTH
-}
-
-func (mh *MqttHeader) UseRetain() {
-	if mh.Control == PUBLISH {
-		mh.Control |= 1 << 1
-	}
-}
-
-func (mh *MqttHeader) UseQos1() {
-	if mh.Control == PUBLISH {
-		mh.Control |= 1 << 1
-	}
-}
-
-func (mh *MqttHeader) UseQos2() {
-	if mh.Control == PUBLISH {
-		mh.Control |= 1 << 2
-	}
-}
-
-func (mh *MqttHeader) UseDup() {
-	if mh.Control == PUBLISH {
-		mh.Control |= 1 << 3
-	}
 }
 
 func RemainingLengthEncode(x int) []byte {
