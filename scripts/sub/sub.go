@@ -76,12 +76,12 @@ func main() {
 	// Subscribe
 	///////////////////////////////////////////////////////////
 
-	respSub1, errSub := mc.Subscribe(topic1)
+	respSub1, errSub := mc.Subscribe(topic1, client.QOS_0)
 	if errSub != nil {
 		log.Printf("Subscribe Error: %s\n", errSub)
 	}
 
-	respSub2, errSub := mc.Subscribe(topic2)
+	respSub2, errSub := mc.Subscribe(topic2, client.QOS_0)
 	if errSub != nil {
 		log.Printf("Subscribe Error: %s\n", errSub)
 	}

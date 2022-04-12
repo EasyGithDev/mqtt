@@ -43,7 +43,7 @@ func main() {
 
 	topic := "hello/mqtt"
 
-	qos := 2
+	qos := client.QOS_2
 
 	// Show line numbers
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -81,7 +81,7 @@ func main() {
 	for {
 		temperature := rand.Intn(60)
 		msg := "The temperature is " + fmt.Sprintf("%d", temperature)
-		_, pubErr := mc.Publish(topic, msg, qos)
+		_, pubErr := mc.Publish(topic, msg, byte(qos))
 
 		if pubErr != nil {
 			log.Print("Error publishing:", pubErr.Error())

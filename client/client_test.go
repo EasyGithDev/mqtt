@@ -122,7 +122,7 @@ func TestSubscribe(t *testing.T) {
 	}
 	defer mc.Close()
 
-	response, err := mc.Subscribe("/hello/world")
+	response, err := mc.Subscribe("/hello/world", 0)
 
 	if err != nil {
 		t.Errorf("Mqtt subscribe fail %s", err)

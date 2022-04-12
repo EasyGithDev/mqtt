@@ -44,6 +44,10 @@ import (
 // Fixed size for the read buffer
 const READ_BUFFER_SISE = 1024
 
+const QOS_0 = 0x00
+const QOS_1 = 0x01
+const QOS_2 = 0x02
+
 // Default clean session for connect in variable Header
 var CLEAN_SESSION bool = true
 
@@ -65,6 +69,7 @@ type MqttClient struct {
 	// behaviours
 	mqttConnected   bool
 	topicSubscribed string
+	qosSubscribed   byte
 
 	// callbacks
 	OnConnect     func(mc MqttClient, userData interface{}, rc net.Conn)
@@ -274,9 +279,10 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 
 // The SUBSCRIBE Packet is sent from the Client to the Server to create one or more Subscriptions.
 // Each Subscription registers a Client’s interest in one or more Topics. The Server sends PUBLISH Packets to the Client in order to forward Application Messages that were published to Topics that match these Subscriptions. The SUBSCRIBE Packet also specifies (for each Subscription) the maximum QoS with which the Server can send Application Messages to the Client.
-func (mc *MqttClient) Subscribe(topic string) (bool, error) {
+func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 
 	mc.topicSubscribed = topic
+	mc.qosSubscribed = qos
 
 	// Adding connection to mc
 	_, err := mc.MqttConnect()
@@ -293,7 +299,7 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 
 	mvh := vheader.NewSubscribeHeader(packetId, topic)
 
-	mpl := payload.New(payload.WithQos(0x00))
+	mpl := payload.New(payload.WithQos(qos))
 
 	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
 	writeBuffer := mp.Encode()
@@ -335,18 +341,18 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 // send back PUBREL – Publish release.
 // wait for PUBCOMP – Publish complete.
 func (mc *MqttClient) PublishQos0(topic string, message string) (bool, error) {
-	return mc.Publish(topic, message, 0)
+	return mc.Publish(topic, message, QOS_0)
 }
 
 func (mc *MqttClient) PublishQos1(topic string, message string) (bool, error) {
-	return mc.Publish(topic, message, 1)
+	return mc.Publish(topic, message, QOS_1)
 }
 
 func (mc *MqttClient) PublishQos2(topic string, message string) (bool, error) {
-	return mc.Publish(topic, message, 2)
+	return mc.Publish(topic, message, QOS_2)
 }
 
-func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, error) {
+func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, error) {
 
 	// Adding connection to mc
 	_, err := mc.MqttConnect()
@@ -356,10 +362,10 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 	}
 
 	var mh *header.MqttHeader = nil
-	if qos == 1 {
+	if qos == QOS_1 {
 		mh = header.New(header.WithControl(header.PUBLISH), header.WithQos1())
 
-	} else if qos == 2 {
+	} else if qos == QOS_2 {
 		mh = header.New(header.WithControl(header.PUBLISH), header.WithQos2())
 
 	} else {
@@ -538,7 +544,7 @@ func (mc *MqttClient) LoopForever() {
 			}
 
 			// Try subscribe
-			mc.Subscribe(mc.topicSubscribed)
+			mc.Subscribe(mc.topicSubscribed, mc.qosSubscribed)
 		}
 
 		for {

@@ -97,7 +97,7 @@ func main() {
 	id := flag.String("i", idGenerator(10), "the client Id")
 	topic := flag.String("t", "", "the topic name")
 	msg := flag.String("m", "", "the message to send")
-	qos := flag.Int("qos", 0, "quality of service")
+	qos := flag.Uint("qos", 0, "quality of service")
 	login := flag.String("log", "", "the login")
 	pwd := flag.String("pwd", "", "the password")
 
@@ -120,6 +120,11 @@ func main() {
 
 	if *pub && strings.TrimSpace(*msg) == "" {
 		fmt.Fprintf(os.Stderr, "missing required -m flag\n")
+		os.Exit(2)
+	}
+
+	if !(*qos == 0 || *qos == 1 || *qos == 2) {
+		fmt.Fprintf(os.Stderr, "qos must be 0,1 or 2\n")
 		os.Exit(2)
 	}
 
@@ -162,10 +167,10 @@ func main() {
 	///////////////////////////////////////////////////////////
 
 	if *pub {
-		mc.Publish(*topic, *msg, *qos)
+		mc.Publish(*topic, *msg, byte(*qos))
 	} else if *sub {
 
-		respSub, errSub := mc.Subscribe(*topic)
+		respSub, errSub := mc.Subscribe(*topic, byte(*qos))
 		if errSub != nil {
 			log.Printf("Subscribe Error: %s\n", errSub)
 		}
