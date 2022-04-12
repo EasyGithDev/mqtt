@@ -295,9 +295,9 @@ func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 
 	mh := header.New(header.WithSubscribe())
 
-	mvh := vheader.NewSubscribeHeader(packetId, topic)
+	mvh := vheader.NewPacketIdHeader(packetId)
 
-	mpl := payload.New(payload.WithQos(qos))
+	mpl := payload.New(payload.WithString(topic), payload.WithQos(qos))
 
 	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
 	writeBuffer := mp.Encode()

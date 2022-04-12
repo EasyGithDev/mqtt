@@ -108,30 +108,28 @@ func (ch *ConnectHeader) String() string {
 // Subscribe header
 /////////////////////////////////////////////////
 
-type SubscribeHeader struct {
-	TopicName string
-	PacketId  uint16
+type PacketIdHeader struct {
+	PacketId uint16
 }
 
-func NewSubscribeHeader(packetId uint16, topicName string) *SubscribeHeader {
-	return &SubscribeHeader{PacketId: packetId, TopicName: topicName}
+func NewPacketIdHeader(packetId uint16) *PacketIdHeader {
+	return &PacketIdHeader{PacketId: packetId}
 }
 
-func (sh *SubscribeHeader) Encode() []byte {
+func (sh *PacketIdHeader) Encode() []byte {
 	var content []byte
 
 	content = append(content, util.Uint162bytes(sh.PacketId)...)
-	content = append(content, util.StringEncode(sh.TopicName)...)
 
 	return content
 }
 
-func (sh *SubscribeHeader) Len() int {
+func (sh *PacketIdHeader) Len() int {
 	return len(sh.Encode())
 }
 
-func (sh *SubscribeHeader) String() string {
-	return fmt.Sprintf("packetId: %d\ntopicName: %s", sh.PacketId, sh.TopicName)
+func (sh *PacketIdHeader) String() string {
+	return fmt.Sprintf("packetId: %d", sh.PacketId)
 }
 
 /////////////////////////////////////////////////
