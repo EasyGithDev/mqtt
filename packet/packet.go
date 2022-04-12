@@ -77,7 +77,7 @@ func WithVariableHeader(variableHeader PaquetContent) OptionPacket {
 	}
 }
 
-func WithVariablePayload(payload PaquetContent) OptionPacket {
+func WithPayload(payload PaquetContent) OptionPacket {
 	return func(mp *MqttPacket) {
 		mp.Payload = payload
 	}

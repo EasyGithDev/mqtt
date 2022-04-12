@@ -37,8 +37,29 @@ type MqttPayload struct {
 	Qos *byte
 }
 
-func NewMqttPayload() *MqttPayload {
-	return &MqttPayload{}
+type PayloadOption func(mh *MqttPayload)
+
+func New(opts ...PayloadOption) *MqttPayload {
+	mp := &MqttPayload{}
+	for _, applyOpt := range opts {
+		if applyOpt != nil {
+			applyOpt(mp)
+		}
+	}
+	return mp
+}
+
+func WithQos(qos byte) PayloadOption {
+	return func(mp *MqttPayload) {
+		mp.Qos = new(byte)
+		*mp.Qos = qos
+	}
+}
+
+func WithString(str string) PayloadOption {
+	return func(mp *MqttPayload) {
+		mp.Payload = append(mp.Payload, str)
+	}
 }
 
 func (mp *MqttPayload) Encode() []byte {

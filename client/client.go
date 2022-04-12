@@ -180,8 +180,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 
 	mvh := vheader.NewConnectHeader(mc.protocol.Name, mc.protocol.Level, connectFlag, mc.connInfos.KeepAlive)
 
-	mpl := payload.NewMqttPayload()
-	mpl.AddString(mc.clientId)
+	mpl := payload.New(payload.WithString(mc.clientId))
 
 	if mc.credentials != nil {
 		// mp.Header.Control = mp.Header.Control | (0x01 << 7) | (0x01 << 6)
@@ -189,7 +188,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 		mpl.AddString(mc.credentials.Password)
 	}
 
-	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithVariablePayload(mpl))
+	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
 	writeBuffer := mp.Encode()
 
 	log.Printf("\n%s\n\n", mp)
@@ -294,10 +293,9 @@ func (mc *MqttClient) Subscribe(topic string) (bool, error) {
 
 	mvh := vheader.NewSubscribeHeader(packetId, topic)
 
-	mpl := payload.NewMqttPayload()
-	mpl.AddQos(0x00)
+	mpl := payload.New(payload.WithQos(0x00))
 
-	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithVariablePayload(mpl))
+	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
 	writeBuffer := mp.Encode()
 
 	log.Printf("Packet: %s\n", mp)
@@ -371,10 +369,9 @@ func (mc *MqttClient) Publish(topic string, message string, qos int) (bool, erro
 	//mh.Control |= 1 << 3
 
 	mvh := vheader.NewPublishHeader(topic)
-	mpl := payload.NewMqttPayload()
-	mpl.AddString(message)
+	mpl := payload.New(payload.WithString(message))
 
-	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithVariablePayload(mpl))
+	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
 	writeBuffer := mp.Encode()
 
 	log.Printf("\n%s\n\n", mp)
