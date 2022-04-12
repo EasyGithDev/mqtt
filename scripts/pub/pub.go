@@ -36,10 +36,11 @@ func main() {
 
 	clientId := "test-golang-mqtt"
 
-	// connHost := "test.mosquitto.org"
-	connHost := "mqtt.eclipseprojects.io"
+	connHost := "test.mosquitto.org"
+	// connHost := "mqtt.eclipseprojects.io"
 
-	connPort := "1883"
+	// connPort := "1883"
+	connPort := "1884"
 
 	topic := "hello/mqtt"
 
@@ -85,6 +86,7 @@ func main() {
 
 		if pubErr != nil {
 			log.Print("Error publishing:", pubErr.Error())
+			break
 		}
 		time.Sleep(5 * time.Second)
 	}

@@ -36,22 +36,8 @@ import (
 	"github.com/easygithdev/mqtt/client/conn"
 )
 
-const (
-	connHost = "test.mosquitto.org"
-	// connHost = "mqtt.eclipseprojects.io"
-
-	// connPort = "1883"
-	connPort = "1884"
-
-	DEBUG = true
-)
-
 func init() {
 
-	if !DEBUG {
-		log.SetFlags(0)
-		log.SetOutput(ioutil.Discard)
-	}
 	// Show line numbers
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
@@ -98,8 +84,9 @@ func main() {
 	topic := flag.String("t", "", "the topic name")
 	msg := flag.String("m", "", "the message to send")
 	qos := flag.Uint("qos", 0, "quality of service")
-	login := flag.String("log", "", "the login")
+	user := flag.String("user", "", "the username")
 	pwd := flag.String("pwd", "", "the password")
+	verbose := flag.Bool("v", false, "verbose mode")
 
 	flag.Parse()
 
@@ -128,9 +115,14 @@ func main() {
 		os.Exit(2)
 	}
 
+	if !*verbose {
+		log.SetFlags(0)
+		log.SetOutput(ioutil.Discard)
+	}
+
 	var credentialsOption client.Option = nil
-	if *login != "" && *pwd != "" {
-		credentialsOption = client.WithCredentials(*login, *pwd)
+	if *user != "" && *pwd != "" {
+		credentialsOption = client.WithCredentials(*user, *pwd)
 	}
 
 	///////////////////////////////////////////////////////////
@@ -167,15 +159,20 @@ func main() {
 	///////////////////////////////////////////////////////////
 
 	if *pub {
-		mc.Publish(*topic, *msg, byte(*qos))
-	} else if *sub {
+		resp, err := mc.Publish(*topic, *msg, byte(*qos))
 
-		respSub, errSub := mc.Subscribe(*topic, byte(*qos))
-		if errSub != nil {
-			log.Printf("Subscribe Error: %s\n", errSub)
+		if err != nil || !resp {
+			log.Printf("Publish Error: %s\n", err)
 		}
 
-		if respSub {
+	} else if *sub {
+
+		resp, err := mc.Subscribe(*topic, byte(*qos))
+		if err != nil {
+			log.Printf("Subscribe Error: %s\n", err)
+		}
+
+		if resp {
 			mc.LoopForever()
 		}
 	}

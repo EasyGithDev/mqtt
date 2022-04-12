@@ -288,7 +288,7 @@ func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 	_, err := mc.MqttConnect()
 
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 
 	//The variable header component of many of the Control Packet types includes a 2 byte Packet Identifier field.
@@ -358,7 +358,7 @@ func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, err
 	_, err := mc.MqttConnect()
 
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 
 	var mh *header.MqttHeader = nil
@@ -485,7 +485,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 	_, err := mc.MqttConnect()
 
 	if err != nil {
-		return false, nil
+		return false, err
 	}
 
 	mh := header.New(header.WithControl(header.PINGREQ))
