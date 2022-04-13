@@ -132,11 +132,7 @@ func NewPacketIdHeader(packetId uint16) *PacketIdHeader {
 }
 
 func (sh *PacketIdHeader) Encode() []byte {
-	var content []byte
-
-	content = append(content, util.Uint162bytes(sh.PacketId)...)
-
-	return content
+	return util.Uint162bytes(sh.PacketId)
 }
 
 func (sh *PacketIdHeader) Len() int {

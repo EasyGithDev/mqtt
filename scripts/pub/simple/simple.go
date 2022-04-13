@@ -22,6 +22,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -39,7 +40,7 @@ func main() {
 
 	topic := "hello/mqtt"
 
-	qos := client.QOS_0
+	qos := client.QOS_2
 
 	// Show line numbers
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
@@ -57,6 +58,10 @@ func main() {
 		// connection infos
 		client.WithConnInfos(conn.New(connHost, conn.WithPort(connPort))),
 	)
+
+	mc.OnPublish = func(mc client.MqttClient, userData interface{}, mid uint16) {
+		fmt.Println("Publish performed with mid:", mid)
+	}
 
 	// Connection
 

@@ -184,7 +184,7 @@ func (mh *MqttHeader) Hexa() string {
 }
 
 func ControlToString(control byte) string {
-	switch control {
+	switch control & ^byte(255>>4) {
 
 	case CONNECT:
 		return "CONNECT"

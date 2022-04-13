@@ -51,11 +51,11 @@ var onDisconnect = func(mc client.MqttClient, userData interface{}, rc net.Conn)
 	fmt.Println("Disconnect from server" + rc.RemoteAddr().String())
 }
 
-var onPublish = func(mc client.MqttClient, userData interface{}, mid int) {
+var onPublish = func(mc client.MqttClient, userData interface{}, mid uint16) {
 	fmt.Printf("Publish\n")
 }
 
-var onSubscribe = func(mc client.MqttClient, userData interface{}, mid int) {
+var onSubscribe = func(mc client.MqttClient, userData interface{}, mid uint16) {
 	fmt.Printf("Subscribe\n")
 }
 

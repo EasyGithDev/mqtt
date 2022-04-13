@@ -75,9 +75,9 @@ type MqttClient struct {
 	// callbacks
 	OnConnect     func(mc MqttClient, userData interface{}, rc net.Conn)
 	OnDisconnect  func(mc MqttClient, userData interface{}, rc net.Conn)
-	OnPublish     func(mc MqttClient, userData interface{}, mid int)
-	OnSubscribe   func(mc MqttClient, userData interface{}, mid int)
-	OnUnsubscribe func(mc MqttClient, userData interface{}, mid int)
+	OnPublish     func(mc MqttClient, userData interface{}, mid uint16)
+	OnSubscribe   func(mc MqttClient, userData interface{}, mid uint16)
+	OnUnsubscribe func(mc MqttClient, userData interface{}, mid uint16)
 	OnMessage     func(mc MqttClient, userData interface{}, message string)
 }
 
@@ -438,11 +438,13 @@ func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, err
 			return false, err
 		}
 
-		control, _ := bb.ReadByte()
+		pubAck := packet.Decode(bb.Bytes())
+		mc.ShowPacket(pubAck)
 
-		if control == header.PUBACK {
+		if pubAck.Header.Control == header.PUBACK {
 			if mc.OnPublish != nil {
-				mc.OnPublish(*mc, nil, 0)
+				mid := pubAck.VariableHeader.(*vheader.PacketIdHeader).PacketId
+				mc.OnPublish(*mc, nil, mid)
 			}
 			return true, nil
 		}
@@ -456,17 +458,16 @@ func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, err
 			return false, err
 		}
 
-		control, _ := bb.ReadByte()
-		bb.Read(make([]byte, 1))
-		vh := make([]byte, 2)
-		bb.Read(vh)
+		pubRec := packet.Decode(bb.Bytes())
+		mc.ShowPacket(pubRec)
 
-		if control == header.PUBREC {
+		if pubRec.Header.Control == header.PUBREC {
+			mid := pubRec.VariableHeader.(*vheader.PacketIdHeader).PacketId
 
 			// Send a PUBREL
 			// The variable header contains the same Packet Identifier as the PUBREC Packet that is being acknowledged
 			mh := header.New(header.WithPubrel())
-			mvh := vheader.NewGenericHeader(vh)
+			mvh := vheader.NewPacketIdHeader(mid)
 			mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh))
 
 			mc.ShowPacket(mp)
@@ -484,11 +485,14 @@ func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, err
 				return false, err
 			}
 
-			control, _ := bb.ReadByte()
+			pubComb := packet.Decode(bb.Bytes())
+			mc.ShowPacket(pubComb)
 
-			if control == header.PUBCOMP {
+			if pubComb.Header.Control == header.PUBCOMP {
 				if mc.OnPublish != nil {
-					mc.OnPublish(*mc, nil, 0)
+					mid := pubRec.VariableHeader.(*vheader.PacketIdHeader).PacketId
+
+					mc.OnPublish(*mc, nil, mid)
 				}
 			}
 

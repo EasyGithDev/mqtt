@@ -27,6 +27,7 @@ import (
 
 	"github.com/easygithdev/mqtt/packet/header"
 	"github.com/easygithdev/mqtt/packet/payload"
+	"github.com/easygithdev/mqtt/packet/util"
 	"github.com/easygithdev/mqtt/packet/vheader"
 )
 
@@ -128,21 +129,21 @@ func Decode(data []byte) *MqttPacket {
 
 	// check the first byte
 	switch data[0] {
-	case header.CONNECT:
+	// case header.CONNECT:
 	case header.CONNACK:
 
 		header := header.New(header.WithControl(control), header.WithRemainingLength(2))
-		header.Control = control
 		rl, _ := bb.ReadByte()
 		header.RemainingLength = []byte{rl}
 		vHeader := vheader.NewGenericHeader(bb.Bytes())
 		mp = NewMqttPacket(header, WithVariableHeader(vHeader))
 
-	case header.PUBLISH:
-	case header.PUBACK:
-	case header.PUBREC:
-	case header.PUBREL:
-	case header.PUBCOMP:
+	// case header.PUBLISH:
+	case header.PUBACK, header.PUBREC, header.PUBREL, header.PUBCOMP:
+		header := header.New(header.WithControl(control), header.WithRemainingLength(2))
+		vHeader := vheader.NewPacketIdHeader(util.Bytes2uint16(bb.Bytes()))
+		mp = NewMqttPacket(header, WithVariableHeader(vHeader))
+
 	case header.SUBSCRIBE:
 	case header.SUBACK:
 	case header.UNSUBSCRIBE:
