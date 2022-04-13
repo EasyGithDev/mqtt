@@ -222,7 +222,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 		switch mpRead.VariableHeader.(*vheader.GenericHeader).Data[1] {
 		case header.CONNECT_ACCEPTED:
 			if mc.OnConnect != nil {
-				mc.OnConnect(*mc, nil, *mc.conn)
+				mc.OnConnect(*mc, mc.userData, *mc.conn)
 			}
 			mc.mqttConnected = true
 			return true, nil
@@ -251,7 +251,6 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 	}
 
 	mh := header.New(header.WithControl(header.DISCONNECT))
-
 	mp := packet.NewMqttPacket(mh)
 
 	mc.ShowPacket(mp)
@@ -264,8 +263,12 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 
 	log.Printf("Wrote %d byte(s)\n", n)
 
-	// mc.TcpDisconnect()
 	mc.mqttConnected = false
+	mc.Close()
+
+	if mc.OnDisconnect != nil {
+		mc.OnDisconnect(*mc, mc.userData, *mc.conn)
+	}
 
 	return true, nil
 
@@ -316,7 +319,7 @@ func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 
 	if control == header.SUBACK {
 		if mc.OnSubscribe != nil {
-			mc.OnSubscribe(*mc, nil, 0)
+			mc.OnSubscribe(*mc, mc.userData, 0)
 		}
 		return true, nil
 	}
@@ -426,7 +429,7 @@ func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, err
 	// Nothing to read for Qos 0
 	if qos == 0 {
 		if mc.OnPublish != nil {
-			mc.OnPublish(*mc, nil, 0)
+			mc.OnPublish(*mc, mc.userData, 0)
 		}
 	} else if qos == 1 {
 
@@ -444,7 +447,7 @@ func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, err
 		if pubAck.Header.Control == header.PUBACK {
 			if mc.OnPublish != nil {
 				mid := pubAck.VariableHeader.(*vheader.PacketIdHeader).PacketId
-				mc.OnPublish(*mc, nil, mid)
+				mc.OnPublish(*mc, mc.userData, mid)
 			}
 			return true, nil
 		}
@@ -491,8 +494,7 @@ func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, err
 			if pubComb.Header.Control == header.PUBCOMP {
 				if mc.OnPublish != nil {
 					mid := pubRec.VariableHeader.(*vheader.PacketIdHeader).PacketId
-
-					mc.OnPublish(*mc, nil, mid)
+					mc.OnPublish(*mc, mc.userData, mid)
 				}
 			}
 
@@ -530,6 +532,7 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 	mc.ShowPacket(mp)
 
+	// Write PINGREQ
 	n, err := (*mc.conn).Write(packet.Encode(mp))
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
@@ -546,9 +549,10 @@ func (mc *MqttClient) Ping() (bool, error) {
 		return false, err
 	}
 
-	control, _ := bb.ReadByte()
+	pingResp := packet.Decode(bb.Bytes())
+	mc.ShowPacket(pingResp)
 
-	if control == header.PINGRESP {
+	if pingResp.Header.Control == header.PINGRESP {
 		return true, nil
 	}
 

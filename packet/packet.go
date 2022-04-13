@@ -150,6 +150,8 @@ func Decode(data []byte) *MqttPacket {
 	case header.UNSUBACK:
 	case header.PINGREQ:
 	case header.PINGRESP:
+		header := header.New(header.WithControl(control))
+		mp = NewMqttPacket(header)
 	case header.DISCONNECT:
 	case header.AUTH:
 	}
