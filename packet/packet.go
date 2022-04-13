@@ -146,6 +146,15 @@ func Decode(data []byte) *MqttPacket {
 
 	case header.SUBSCRIBE:
 	case header.SUBACK:
+		header := header.New(header.WithControl(control))
+		rl, _ := bb.ReadByte()
+		header.RemainingLength = []byte{rl}
+		buff := make([]byte, 2)
+		n, _ := bb.Read(buff)
+		vHeader := vheader.NewPacketIdHeader(util.Bytes2uint16(buff[:n]))
+		pl, _ := bb.ReadByte()
+		payload := payload.New(payload.WithQos(pl))
+		mp = NewMqttPacket(header, WithVariableHeader(vHeader), WithPayload(payload))
 	case header.UNSUBSCRIBE:
 	case header.UNSUBACK:
 	case header.PINGREQ:

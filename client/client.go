@@ -315,11 +315,16 @@ func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 		log.Printf("Read Error: %s\n", readErr)
 		return false, readErr
 	}
-	control, _ := bb.ReadByte()
 
-	if control == header.SUBACK {
+	fmt.Println(util.ShowHexa(bb.Bytes()))
+
+	subAck := packet.Decode(bb.Bytes())
+	mc.ShowPacket(subAck)
+
+	if subAck.Header.Control == header.SUBACK {
 		if mc.OnSubscribe != nil {
-			mc.OnSubscribe(*mc, mc.userData, 0)
+			mid := subAck.VariableHeader.(*vheader.PacketIdHeader).PacketId
+			mc.OnSubscribe(*mc, mc.userData, mid)
 		}
 		return true, nil
 	}
