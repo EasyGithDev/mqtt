@@ -140,7 +140,9 @@ func Decode(data []byte) *MqttPacket {
 
 	// case header.PUBLISH:
 	case header.PUBACK, header.PUBREC, header.PUBREL, header.PUBCOMP:
-		header := header.New(header.WithControl(control), header.WithRemainingLength(2))
+		header := header.New(header.WithControl(control))
+		rl, _ := bb.ReadByte()
+		header.RemainingLength = []byte{rl}
 		vHeader := vheader.NewPacketIdHeader(util.Bytes2uint16(bb.Bytes()))
 		mp = NewMqttPacket(header, WithVariableHeader(vHeader))
 

@@ -316,7 +316,7 @@ func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 		return false, readErr
 	}
 
-	fmt.Println(util.ShowHexa(bb.Bytes()))
+	// fmt.Println(util.ShowHexa(bb.Bytes()))
 
 	subAck := packet.Decode(bb.Bytes())
 	mc.ShowPacket(subAck)
@@ -636,7 +636,7 @@ func (mc *MqttClient) LoopForever() {
 			// log.Printf("Read msg: [%s]\n", msgMsg)
 
 			if mc.OnMessage != nil {
-				mc.OnMessage(*mc, nil, msg)
+				mc.OnMessage(*mc, mc.userData, msg)
 			}
 
 		}
