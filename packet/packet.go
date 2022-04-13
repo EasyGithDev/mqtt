@@ -37,6 +37,7 @@ type PaquetContent interface {
 	Encode() []byte
 	Len() int
 	String() string
+	Hexa() string
 }
 
 func Encode(pContent PaquetContent) []byte {
@@ -45,6 +46,10 @@ func Encode(pContent PaquetContent) []byte {
 
 func Len(pContent PaquetContent) int {
 	return pContent.Len()
+}
+
+func Hexa(pContent PaquetContent) string {
+	return pContent.Hexa()
 }
 
 /////////////////////////////////////////////////
@@ -113,7 +118,9 @@ func (mp *MqttPacket) Encode() []byte {
 	return mqttBuffer.Bytes()
 }
 
-func (mp *MqttPacket) Decode(data []byte) {
+func Decode(data []byte) *MqttPacket {
+
+	var mp *MqttPacket = nil
 
 	bb := bytes.NewBuffer(data)
 	control, _ := bb.ReadByte()
@@ -125,12 +132,10 @@ func (mp *MqttPacket) Decode(data []byte) {
 
 		header := header.New(header.WithControl(control), header.WithRemainingLength(2))
 		header.Control = control
-		header.RemainingLength = make([]byte, 1)
-		header.RemainingLength[0], _ = bb.ReadByte()
+		rl, _ := bb.ReadByte()
+		header.RemainingLength = []byte{rl}
 		vHeader := vheader.NewGenericHeader(bb.Bytes())
-
-		mp.Header = header
-		mp.VariableHeader = vHeader
+		mp = NewMqttPacket(header, WithVariableHeader(vHeader))
 
 	case header.PUBLISH:
 	case header.PUBACK:
@@ -146,29 +151,39 @@ func (mp *MqttPacket) Decode(data []byte) {
 	case header.DISCONNECT:
 	case header.AUTH:
 	}
+
+	return mp
 }
 
 func (mp *MqttPacket) String() string {
 
 	strHeader := "****************\tHeader\t****************\n" +
 		mp.Header.String() +
-		fmt.Sprintf("\nLen:%d", mp.Header.Len())
+		fmt.Sprintf("\nLen:%d bytes", mp.Header.Len()) +
+		fmt.Sprintf("\nHexa:%s", mp.Header.Hexa())
 
-	strVheader := ""
+	strVheader := "\n****************\tvHeader\t****************\n"
 	if mp.VariableHeader != nil {
-		strVheader += "\n****************\tvHeader\t****************\n" +
-			mp.VariableHeader.String() +
-			fmt.Sprintf("\nLen:%d", mp.VariableHeader.Len())
+		strVheader += mp.VariableHeader.String() +
+			fmt.Sprintf("\nLen:%d bytes", mp.VariableHeader.Len()) +
+			fmt.Sprintf("\nHexa:%s", mp.VariableHeader.Hexa())
+
+	} else {
+		strVheader += "No variable header"
 	}
 
-	strPayload := ""
+	strPayload := "\n****************\tPayload\t****************\n"
 	if mp.Payload != nil {
-		strPayload += "\n****************\tPayload\t****************\n" +
-			mp.Payload.String() +
-			fmt.Sprintf("\nLen:%d", mp.Payload.Len())
+		strPayload += mp.Payload.String() +
+			fmt.Sprintf("\nLen:%d bytes", mp.Payload.Len()) +
+			fmt.Sprintf("\nHexa:%s", mp.Payload.Hexa())
+
+	} else {
+		strPayload += "No payload"
 	}
 
-	return strHeader +
+	return "\n****************\t" + header.ControlToString(mp.Header.Control) + "\t****************\n" +
+		strHeader +
 		strVheader +
 		strPayload
 

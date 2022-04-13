@@ -59,6 +59,10 @@ func (gh *GenericHeader) String() string {
 	return string(gh.data)
 }
 
+func (gh *GenericHeader) Hexa() string {
+	return util.ShowHexa(gh.Encode())
+}
+
 /////////////////////////////////////////////////
 // Connect header
 /////////////////////////////////////////////////
@@ -104,6 +108,10 @@ func (ch *ConnectHeader) String() string {
 	return fmt.Sprintf("protocol: %s\nversion: %d\nflag: %b\nkeepalive: %d", ch.ProtocolName, ch.ProtocolVersion, ch.Flag, ch.KeepAlive)
 }
 
+func (ch *ConnectHeader) Hexa() string {
+	return util.ShowHexa(ch.Encode())
+}
+
 /////////////////////////////////////////////////
 // Subscribe header
 /////////////////////////////////////////////////
@@ -130,6 +138,10 @@ func (sh *PacketIdHeader) Len() int {
 
 func (sh *PacketIdHeader) String() string {
 	return fmt.Sprintf("packetId: %d", sh.PacketId)
+}
+
+func (sh *PacketIdHeader) Hexa() string {
+	return util.ShowHexa(sh.Encode())
 }
 
 /////////////////////////////////////////////////
@@ -159,4 +171,8 @@ func (ph *PublishHeader) Len() int {
 
 func (ph *PublishHeader) String() string {
 	return fmt.Sprintf("topicName: %s", ph.TopicName)
+}
+
+func (ph *PublishHeader) Hexa() string {
+	return util.ShowHexa(ph.Encode())
 }

@@ -101,3 +101,7 @@ func (mp *MqttPayload) String() string {
 
 	return str
 }
+
+func (mp *MqttPayload) Hexa() string {
+	return util.ShowHexa(mp.Encode())
+}

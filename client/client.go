@@ -81,7 +81,7 @@ type MqttClient struct {
 }
 
 // client_id=””, clean_session=True, userdata=None, protocol=MQTTv311)
-func New(clientId string, opts ...Option) *MqttClient {
+func New(clientId string, opts ...ClientOption) *MqttClient {
 	mc := &MqttClient{
 		conn:         nil,
 		clientId:     clientId,
@@ -99,33 +99,33 @@ func New(clientId string, opts ...Option) *MqttClient {
 	return mc
 }
 
-type Option func(f *MqttClient)
+type ClientOption func(f *MqttClient)
 
-func WithCleanSession(cleanSession bool) Option {
+func WithCleanSession(cleanSession bool) ClientOption {
 	return func(mc *MqttClient) {
 		mc.cleanSession = cleanSession
 	}
 }
 
-func WithUserData(userData interface{}) Option {
+func WithUserData(userData interface{}) ClientOption {
 	return func(mc *MqttClient) {
 		mc.userData = userData
 	}
 }
 
-func WithProtocol(name string, level byte) Option {
+func WithProtocol(name string, level byte) ClientOption {
 	return func(mc *MqttClient) {
 		mc.protocol = protocol.New(name, level)
 	}
 }
 
-func WithCredentials(login string, password string) Option {
+func WithCredentials(login string, password string) ClientOption {
 	return func(mc *MqttClient) {
 		mc.credentials = credentials.New(login, password)
 	}
 }
 
-func WithConnInfos(connInfos *conn.MqttConn) Option {
+func WithConnInfos(connInfos *conn.MqttConn) ClientOption {
 	return func(mc *MqttClient) {
 		mc.connInfos = connInfos
 	}
@@ -214,6 +214,10 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 		log.Printf("Read Error: %s\n", readErr)
 		return false, readErr
 	}
+
+	packet := packet.Decode(bb.Bytes())
+
+	fmt.Printf("%s", packet)
 
 	control, _ := bb.ReadByte()
 

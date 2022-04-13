@@ -24,6 +24,8 @@ package header
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/easygithdev/mqtt/packet/util"
 )
 
 //  MQTT Control Packet type
@@ -175,6 +177,47 @@ func (mh *MqttHeader) Len() int {
 
 func (mh *MqttHeader) String() string {
 	return fmt.Sprintf("control: %b \nremainingLength: %b", mh.Control, mh.RemainingLength)
+}
+
+func (mh *MqttHeader) Hexa() string {
+	return util.ShowHexa(mh.Encode())
+}
+
+func ControlToString(control byte) string {
+	switch control {
+
+	case CONNECT:
+		return "CONNECT"
+	case CONNACK:
+		return "CONNACK"
+	case PUBLISH:
+		return "PUBLISH"
+	case PUBACK:
+		return "PUBACK"
+	case PUBREC:
+		return "PUBREC"
+	case PUBREL:
+		return "PUBREL"
+	case PUBCOMP:
+		return "PUBCOMP"
+	case SUBSCRIBE:
+		return "SUBSCRIBE"
+	case SUBACK:
+		return "SUBACK"
+	case UNSUBSCRIBE:
+		return "UNSUBSCRIBE"
+	case UNSUBACK:
+		return "UNSUBACK"
+	case PINGREQ:
+		return "PINGREQ"
+	case PINGRESP:
+		return "PINGRESP"
+	case DISCONNECT:
+		return "DISCONNECT"
+	case AUTH:
+		return "AUTH"
+	}
+	return "NO CONTROL"
 }
 
 func RemainingLengthEncode(x int) []byte {
