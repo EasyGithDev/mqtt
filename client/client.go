@@ -44,6 +44,7 @@ import (
 // Fixed size for the read buffer
 const READ_BUFFER_SISE = 1024
 
+// Quality of service
 const QOS_0 = 0x00
 const QOS_1 = 0x01
 const QOS_2 = 0x02
@@ -80,25 +81,6 @@ type MqttClient struct {
 	OnMessage     func(mc MqttClient, userData interface{}, message string)
 }
 
-// client_id=””, clean_session=True, userdata=None, protocol=MQTTv311)
-func New(clientId string, opts ...ClientOption) *MqttClient {
-	mc := &MqttClient{
-		conn:         nil,
-		clientId:     clientId,
-		cleanSession: CLEAN_SESSION,
-		userData:     nil,
-		protocol:     protocol.New(protocol.PROTOCOL_NAME, protocol.PROTOCOL_LEVEL),
-	}
-
-	for _, applyOpt := range opts {
-		if applyOpt != nil {
-			applyOpt(mc)
-		}
-	}
-
-	return mc
-}
-
 type ClientOption func(f *MqttClient)
 
 func WithCleanSession(cleanSession bool) ClientOption {
@@ -129,6 +111,29 @@ func WithConnInfos(connInfos *conn.MqttConn) ClientOption {
 	return func(mc *MqttClient) {
 		mc.connInfos = connInfos
 	}
+}
+
+// client_id=””, clean_session=True, userdata=None, protocol=MQTTv311)
+func New(clientId string, opts ...ClientOption) *MqttClient {
+	mc := &MqttClient{
+		conn:         nil,
+		clientId:     clientId,
+		cleanSession: CLEAN_SESSION,
+		userData:     nil,
+		protocol:     protocol.New(protocol.PROTOCOL_NAME, protocol.PROTOCOL_LEVEL),
+	}
+
+	for _, applyOpt := range opts {
+		if applyOpt != nil {
+			applyOpt(mc)
+		}
+	}
+
+	return mc
+}
+
+func (mc *MqttClient) ShowPacket(mp *packet.MqttPacket) {
+	log.Printf("\n%s\n\n", mp)
 }
 
 func (mc *MqttClient) Connect() (bool, error) {
@@ -182,9 +187,7 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	}
 
 	mh := header.New(header.WithControl(header.CONNECT))
-
 	mvh := vheader.NewConnectHeader(mc.protocol.Name, mc.protocol.Level, connectFlag, mc.connInfos.KeepAlive)
-
 	mpl := payload.New(payload.WithString(mc.clientId))
 
 	if mc.credentials != nil {
@@ -194,40 +197,29 @@ func (mc *MqttClient) MqttConnect() (bool, error) {
 	}
 
 	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
-	writeBuffer := mp.Encode()
 
-	log.Printf("\n%s\n\n", mp)
-	// log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
+	mc.ShowPacket(mp)
 
-	_, err := (*mc.conn).Write(writeBuffer)
+	// Write CONNECT
+	_, err := (*mc.conn).Write(packet.Encode(mp))
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
 	}
 
-	// log.Printf("Wrote %d byte(s)\n", n)
-
 	// Read CONNHACK
-
 	bb, readErr := mc.Read()
 	if err != nil {
 		log.Printf("Read Error: %s\n", readErr)
 		return false, readErr
 	}
 
-	packet := packet.Decode(bb.Bytes())
+	mpRead := packet.Decode(bb.Bytes())
+	mc.ShowPacket(mpRead)
 
-	fmt.Printf("%s", packet)
+	if mpRead.Header.Control == header.CONNACK {
 
-	control, _ := bb.ReadByte()
-
-	if control == header.CONNACK {
-
-		bb.Next(2)
-
-		accepted, _ := bb.ReadByte()
-
-		switch accepted {
+		switch mpRead.VariableHeader.(*vheader.GenericHeader).Data[1] {
 		case header.CONNECT_ACCEPTED:
 			if mc.OnConnect != nil {
 				mc.OnConnect(*mc, nil, *mc.conn)
@@ -262,11 +254,9 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 
 	mp := packet.NewMqttPacket(mh)
 
-	// log.Printf("Sending command: 0x%x \n", mh.Control)
+	mc.ShowPacket(mp)
 
-	writeBuffer := mp.Encode()
-
-	n, err := (*mc.conn).Write(writeBuffer)
+	n, err := (*mc.conn).Write(packet.Encode(mp))
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
@@ -304,12 +294,10 @@ func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 	mpl := payload.New(payload.WithString(topic), payload.WithQos(qos))
 
 	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
-	writeBuffer := mp.Encode()
 
-	log.Printf("Packet: %s\n", mp)
-	log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
+	mc.ShowPacket(mp)
 
-	n, writeErr := (*mc.conn).Write(writeBuffer)
+	n, writeErr := (*mc.conn).Write(packet.Encode(mp))
 	if writeErr != nil {
 		log.Printf("Write Error: %s\n", writeErr)
 		return false, writeErr
@@ -352,12 +340,10 @@ func (mc *MqttClient) Unsubscribe(topic string) (bool, error) {
 	mpl := payload.New(payload.WithString(topic))
 
 	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
-	writeBuffer := mp.Encode()
 
-	log.Printf("Packet: %s\n", mp)
-	log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
+	mc.ShowPacket(mp)
 
-	n, writeErr := (*mc.conn).Write(writeBuffer)
+	n, writeErr := (*mc.conn).Write(packet.Encode(mp))
 	if writeErr != nil {
 		log.Printf("Write Error: %s\n", writeErr)
 		return false, writeErr
@@ -425,13 +411,11 @@ func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, err
 
 	mvh := vheader.NewPublishHeader(topic)
 	mpl := payload.New(payload.WithString(message))
-
 	mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh), packet.WithPayload(mpl))
-	writeBuffer := mp.Encode()
 
-	log.Printf("\n%s\n\n", mp)
+	mc.ShowPacket(mp)
 
-	n, err := (*mc.conn).Write(writeBuffer)
+	n, err := (*mc.conn).Write(packet.Encode(mp))
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err
@@ -484,8 +468,10 @@ func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, err
 			mh := header.New(header.WithPubrel())
 			mvh := vheader.NewGenericHeader(vh)
 			mp := packet.NewMqttPacket(mh, packet.WithVariableHeader(mvh))
-			writeBuffer := mp.Encode()
-			_, err := (*mc.conn).Write(writeBuffer)
+
+			mc.ShowPacket(mp)
+
+			_, err := (*mc.conn).Write(packet.Encode(mp))
 			if err != nil {
 				log.Printf("Write Error: %s\n", err)
 				return false, err
@@ -537,13 +523,10 @@ func (mc *MqttClient) Ping() (bool, error) {
 
 	mh := header.New(header.WithControl(header.PINGREQ))
 	mp := packet.NewMqttPacket(mh)
-	writeBuffer := mp.Encode()
 
-	log.Printf("\n%s\n\n", mp)
+	mc.ShowPacket(mp)
 
-	// log.Printf("Packet: %s\n", util.ShowHexa(writeBuffer))
-
-	n, err := (*mc.conn).Write(writeBuffer)
+	n, err := (*mc.conn).Write(packet.Encode(mp))
 	if err != nil {
 		log.Printf("Write Error: %s\n", err)
 		return false, err

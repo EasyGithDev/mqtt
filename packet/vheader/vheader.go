@@ -35,28 +35,35 @@ var CONNECT_FLAG_WILL_RETAIN byte = 0x20
 var CONNECT_FLAG_PASSWORD byte = 0x40
 var CONNECT_FLAG_USERNAME byte = 0x80
 
+type VariableHeader interface {
+	Encode() []byte
+	Len() int
+	String() string
+	Hexa() string
+}
+
 /////////////////////////////////////////////////
 // Generic header
 /////////////////////////////////////////////////
 
 type GenericHeader struct {
-	data []byte
+	Data []byte
 }
 
 func NewGenericHeader(data []byte) *GenericHeader {
-	return &GenericHeader{data: data}
+	return &GenericHeader{Data: data}
 }
 
 func (gh *GenericHeader) Encode() []byte {
-	return gh.data
+	return gh.Data
 }
 
 func (gh *GenericHeader) Len() int {
-	return len(gh.data)
+	return len(gh.Data)
 }
 
 func (gh *GenericHeader) String() string {
-	return string(gh.data)
+	return string(gh.Data)
 }
 
 func (gh *GenericHeader) Hexa() string {

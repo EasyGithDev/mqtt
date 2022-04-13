@@ -120,7 +120,7 @@ func main() {
 		log.SetOutput(ioutil.Discard)
 	}
 
-	var credentialsOption client.Option = nil
+	var credentialsOption client.ClientOption = nil
 	if *user != "" && *pwd != "" {
 		credentialsOption = client.WithCredentials(*user, *pwd)
 	}

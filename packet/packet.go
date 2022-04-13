@@ -26,6 +26,7 @@ import (
 	"fmt"
 
 	"github.com/easygithdev/mqtt/packet/header"
+	"github.com/easygithdev/mqtt/packet/payload"
 	"github.com/easygithdev/mqtt/packet/vheader"
 )
 
@@ -33,24 +34,24 @@ import (
 // Interface PacketContent
 /////////////////////////////////////////////////
 
-type PaquetContent interface {
-	Encode() []byte
-	Len() int
-	String() string
-	Hexa() string
-}
+// type PaquetContent interface {
+// 	Encode() []byte
+// 	Len() int
+// 	String() string
+// 	Hexa() string
+// }
 
-func Encode(pContent PaquetContent) []byte {
-	return pContent.Encode()
-}
+// func Encode(pContent PaquetContent) []byte {
+// 	return pContent.Encode()
+// }
 
-func Len(pContent PaquetContent) int {
-	return pContent.Len()
-}
+// func Len(pContent PaquetContent) int {
+// 	return pContent.Len()
+// }
 
-func Hexa(pContent PaquetContent) string {
-	return pContent.Hexa()
-}
+// func Hexa(pContent PaquetContent) string {
+// 	return pContent.Hexa()
+// }
 
 /////////////////////////////////////////////////
 // MqttPacket
@@ -58,8 +59,8 @@ func Hexa(pContent PaquetContent) string {
 
 type MqttPacket struct {
 	Header         *header.MqttHeader
-	VariableHeader PaquetContent
-	Payload        PaquetContent
+	VariableHeader vheader.VariableHeader
+	Payload        *payload.MqttPayload
 }
 
 type OptionPacket func(mp *MqttPacket)
@@ -76,19 +77,19 @@ func NewMqttPacket(header *header.MqttHeader, opts ...OptionPacket) *MqttPacket 
 	return mp
 }
 
-func WithVariableHeader(variableHeader PaquetContent) OptionPacket {
+func WithVariableHeader(variableHeader vheader.VariableHeader) OptionPacket {
 	return func(mp *MqttPacket) {
 		mp.VariableHeader = variableHeader
 	}
 }
 
-func WithPayload(payload PaquetContent) OptionPacket {
+func WithPayload(payload *payload.MqttPayload) OptionPacket {
 	return func(mp *MqttPacket) {
 		mp.Payload = payload
 	}
 }
 
-func (mp *MqttPacket) Encode() []byte {
+func Encode(mp *MqttPacket) []byte {
 
 	// compute the fields
 	var mqttBuffer bytes.Buffer
@@ -96,23 +97,23 @@ func (mp *MqttPacket) Encode() []byte {
 	var vhLen, pLen int = 0, 0
 
 	if mp.VariableHeader != nil {
-		vhLen = PaquetContent.Len(mp.VariableHeader)
+		vhLen = mp.VariableHeader.Len()
 	}
 
 	if mp.Payload != nil {
-		pLen = PaquetContent.Len(mp.Payload)
+		pLen = mp.Payload.Len()
 	}
 
 	mp.Header.RemainingLength = header.RemainingLengthEncode(vhLen + pLen)
 
-	mqttBuffer.Write(PaquetContent.Encode(mp.Header))
+	mqttBuffer.Write(mp.Header.Encode())
 
 	if vhLen > 0 {
-		mqttBuffer.Write(PaquetContent.Encode(mp.VariableHeader))
+		mqttBuffer.Write(mp.VariableHeader.Encode())
 	}
 
 	if pLen > 0 {
-		mqttBuffer.Write(PaquetContent.Encode(mp.Payload))
+		mqttBuffer.Write(mp.Payload.Encode())
 	}
 
 	return mqttBuffer.Bytes()
