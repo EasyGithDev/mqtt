@@ -23,7 +23,6 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 
@@ -37,8 +36,8 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	// Disable log
-	log.SetFlags(0)
-	log.SetOutput(ioutil.Discard)
+	// log.SetFlags(0)
+	// log.SetOutput(ioutil.Discard)
 
 	clientId := "test-golang-mqtt"
 
