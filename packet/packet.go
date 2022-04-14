@@ -163,6 +163,8 @@ func Decode(data []byte) *MqttPacket {
 	case header.PINGRESP:
 		header := header.New(header.WithControl(control))
 		mp = NewMqttPacket(header)
+		rl, _ := bb.ReadByte()
+		header.RemainingLength = []byte{rl}
 	case header.DISCONNECT:
 	case header.AUTH:
 	}
