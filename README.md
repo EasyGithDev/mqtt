@@ -1,14 +1,17 @@
 # Mqtt client
 I'll try to implement the draft as mentionned here :
+
 https://docs.oasis-open.org/mqtt/mqtt/v3.1.1/os/
 
 
-## use as a binary
+## Use as a binary
 
-Open a terminal and type write :
+Open a terminal and write :
 ```bash
     ./make
 ```
+
+Or you can edit the make file to perfome your own buid command.
 
 You will find the binary in the bin folder.
 
@@ -17,14 +20,12 @@ You can send a publish like above :
     ./bin/client -pub -h=test.mosquitto.org -t=hello/mqtt "-m=hello world"
 ```
 
-You can subscribe and read the messages like above :
-
-You can send a publish like above :
+You can subscribe to a topic and read the messages like above :
 ```bash
     ./bin/client -sub -h=test.mosquitto.org -t=hello/mqtt
 ```
 
-## use as a library
+## Use as a library
 
 #### Connection
 
