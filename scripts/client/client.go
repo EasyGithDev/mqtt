@@ -52,15 +52,15 @@ var onDisconnect = func(mc client.MqttClient, userData interface{}, rc net.Conn)
 }
 
 var onPublish = func(mc client.MqttClient, userData interface{}, mid uint16) {
-	fmt.Printf("Publish\n")
+	fmt.Printf("Publish performed\n")
 }
 
 var onSubscribe = func(mc client.MqttClient, userData interface{}, mid uint16) {
-	fmt.Printf("Subscribe\n")
+	fmt.Printf("Subscribe performed\n")
 }
 
 var onMessage = func(mc client.MqttClient, userData interface{}, message string) {
-	fmt.Println("msg: " + message)
+	fmt.Print(message)
 }
 
 func idGenerator(n int) string {
@@ -76,11 +76,11 @@ func idGenerator(n int) string {
 
 func main() {
 
-	pub := flag.Bool("pub", false, "publish")
-	sub := flag.Bool("sub", false, "subscribe")
+	pub := flag.Bool("pub", false, "publish mode")
+	sub := flag.Bool("sub", false, "subscribe mode")
 	host := flag.String("h", "", "the hostname")
 	port := flag.String("p", "1883", "the port")
-	id := flag.String("i", idGenerator(10), "the client Id")
+	id := flag.String("i", idGenerator(10), "the client ID")
 	topic := flag.String("t", "", "the topic name")
 	msg := flag.String("m", "", "the message to send")
 	qos := flag.Uint("qos", 0, "quality of service")
@@ -92,26 +92,31 @@ func main() {
 
 	if !*pub && !*sub {
 		fmt.Fprintf(os.Stderr, "missing required -pub/-sub flag\n")
+		flag.PrintDefaults()
 		os.Exit(2)
 	}
 
 	if strings.TrimSpace(*host) == "" {
 		fmt.Fprintf(os.Stderr, "missing required -h argument/flag\n")
+		flag.PrintDefaults()
 		os.Exit(2)
 	}
 
 	if strings.TrimSpace(*topic) == "" {
 		fmt.Fprintf(os.Stderr, "missing required -t argument/flag\n")
+		flag.PrintDefaults()
 		os.Exit(2)
 	}
 
 	if *pub && strings.TrimSpace(*msg) == "" {
 		fmt.Fprintf(os.Stderr, "missing required -m flag\n")
+		flag.PrintDefaults()
 		os.Exit(2)
 	}
 
 	if !(*qos == 0 || *qos == 1 || *qos == 2) {
 		fmt.Fprintf(os.Stderr, "qos must be 0,1 or 2\n")
+		flag.PrintDefaults()
 		os.Exit(2)
 	}
 
@@ -168,11 +173,9 @@ func main() {
 	} else if *sub {
 
 		resp, err := mc.Subscribe(*topic, byte(*qos))
-		if err != nil {
+		if err != nil || !resp {
 			log.Printf("Subscribe Error: %s\n", err)
-		}
-
-		if resp {
+		} else {
 			mc.LoopForever()
 		}
 	}
