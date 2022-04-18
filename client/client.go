@@ -34,6 +34,7 @@ import (
 	"github.com/easygithdev/mqtt/client/conn"
 	"github.com/easygithdev/mqtt/client/credentials"
 	"github.com/easygithdev/mqtt/client/protocol"
+	"github.com/easygithdev/mqtt/client/subscription"
 	"github.com/easygithdev/mqtt/packet"
 	"github.com/easygithdev/mqtt/packet/header"
 	"github.com/easygithdev/mqtt/packet/payload"
@@ -68,9 +69,10 @@ type MqttClient struct {
 	protocol     *protocol.MqttProtocol
 
 	// behaviours
-	mqttConnected   bool
-	topicSubscribed string
-	qosSubscribed   byte
+	mqttConnected bool
+
+	// subcription list
+	subscribed subscription.Subscriptions
 
 	// callbacks
 	OnConnect     func(mc MqttClient, userData interface{}, rc net.Conn)
@@ -121,6 +123,7 @@ func New(clientId string, opts ...ClientOption) *MqttClient {
 		cleanSession: CLEAN_SESSION,
 		userData:     nil,
 		protocol:     protocol.New(protocol.PROTOCOL_NAME, protocol.PROTOCOL_LEVEL),
+		subscribed:   make(subscription.Subscriptions, 10),
 	}
 
 	for _, applyOpt := range opts {
@@ -278,8 +281,8 @@ func (mc *MqttClient) MqttDisconnect() (bool, error) {
 // Each Subscription registers a Client’s interest in one or more Topics. The Server sends PUBLISH Packets to the Client in order to forward Application Messages that were published to Topics that match these Subscriptions. The SUBSCRIBE Packet also specifies (for each Subscription) the maximum QoS with which the Server can send Application Messages to the Client.
 func (mc *MqttClient) Subscribe(topic string, qos byte) (bool, error) {
 
-	mc.topicSubscribed = topic
-	mc.qosSubscribed = qos
+	sub := subscription.New(topic, qos)
+	mc.subscribed[topic] = *sub
 
 	// Adding connection to mc
 	if _, err := mc.MqttConnect(); err != nil {
@@ -372,6 +375,7 @@ func (mc *MqttClient) Unsubscribe(topic string) (bool, error) {
 		if mc.OnUnsubscribe != nil {
 			mc.OnUnsubscribe(*mc, nil, 0)
 		}
+		delete(mc.subscribed, topic)
 		return true, nil
 	}
 
@@ -575,7 +579,9 @@ func (mc *MqttClient) LoopForever() {
 			}
 
 			// Try subscribe
-			mc.Subscribe(mc.topicSubscribed, mc.qosSubscribed)
+			for _, v := range mc.subscribed {
+				mc.Subscribe(v.Topic, v.Qos)
+			}
 		}
 
 		for {
