@@ -79,9 +79,10 @@ Connect with credentials :
 #### Publish
 
 Publish a message :
-- topic
-- qos
-- message
+- topic : the topic that the message should be published on.
+- message : the actual message to send.
+- qos : the quality of service level to use.
+- retain : if set to True, the message will be set as the “last known good”/retained message for the topic.
 
 ```go
         topic := "hello/mqtt"
@@ -119,8 +120,8 @@ Publish many messages :
 
 
 Subscribe with :
-- topic
-- qos
+- topic : a string specifying the subscription topic to subscribe to.
+- qos : the desired quality of service level for the subscription.
 
 ```go
         topic := "hello/mqtt"
