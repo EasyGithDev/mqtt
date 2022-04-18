@@ -84,6 +84,7 @@ func main() {
 	topic := flag.String("t", "", "the topic name")
 	msg := flag.String("m", "", "the message to send")
 	qos := flag.Uint("qos", 0, "quality of service")
+	retain := flag.Bool("r", false, "retain the messages")
 	user := flag.String("user", "", "the username")
 	pwd := flag.String("pwd", "", "the password")
 	verbose := flag.Bool("v", false, "verbose mode")
@@ -164,7 +165,7 @@ func main() {
 	///////////////////////////////////////////////////////////
 
 	if *pub {
-		resp, err := mc.Publish(*topic, *msg, byte(*qos))
+		resp, err := mc.Publish(*topic, *msg, byte(*qos), *retain)
 
 		if err != nil || !resp {
 			log.Printf("Publish Error: %s\n", err)

@@ -125,7 +125,7 @@ func WithUnsubscribe() OptionHeader {
 func WithRetain() OptionHeader {
 	return func(mh *MqttHeader) {
 		if mh.Control == PUBLISH {
-			mh.Control |= 1 << 1
+			mh.Control |= 1
 		}
 	}
 }

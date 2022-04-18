@@ -385,19 +385,7 @@ func (mc *MqttClient) Unsubscribe(topic string) (bool, error) {
 // wait for PUBREC – Publish received.
 // send back PUBREL – Publish release.
 // wait for PUBCOMP – Publish complete.
-func (mc *MqttClient) PublishQos0(topic string, message string) (bool, error) {
-	return mc.Publish(topic, message, QOS_0)
-}
-
-func (mc *MqttClient) PublishQos1(topic string, message string) (bool, error) {
-	return mc.Publish(topic, message, QOS_1)
-}
-
-func (mc *MqttClient) PublishQos2(topic string, message string) (bool, error) {
-	return mc.Publish(topic, message, QOS_2)
-}
-
-func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, error) {
+func (mc *MqttClient) Publish(topic string, message string, qos byte, retain bool) (bool, error) {
 
 	// Adding connection to mc
 	if _, err := mc.MqttConnect(); err != nil {
@@ -407,15 +395,15 @@ func (mc *MqttClient) Publish(topic string, message string, qos byte) (bool, err
 	var mh *header.MqttHeader = nil
 	if qos == QOS_1 {
 		mh = header.New(header.WithControl(header.PUBLISH), header.WithQos1())
-
 	} else if qos == QOS_2 {
 		mh = header.New(header.WithControl(header.PUBLISH), header.WithQos2())
-
 	} else {
 		mh = header.New(header.WithControl(header.PUBLISH))
 	}
 	// retain
-	//mh.Control |= 1 << 3
+	if retain {
+		mh.Control |= 1
+	}
 
 	mvh := vheader.NewPublishHeader(topic)
 	mpl := payload.New(payload.WithString(message))

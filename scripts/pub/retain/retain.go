@@ -76,8 +76,8 @@ func main() {
 	// Simple Publish
 	///////////////////////////////////////////////////////////
 
-	msg := "The temperature is 5 degrees"
-	resp, err := mc.Publish(topic, msg, byte(qos), false)
+	msg := "The temperature is 10 degrees"
+	resp, err := mc.Publish(topic, msg, byte(qos), true)
 	if err != nil || !resp {
 		log.Print("Error publishing:", err)
 	}

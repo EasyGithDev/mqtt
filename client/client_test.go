@@ -101,7 +101,7 @@ func TestPublish(t *testing.T) {
 	}
 	defer mc.Close()
 
-	response, err := mc.Publish(topic, "this is my hello world", 0)
+	response, err := mc.Publish(topic, "this is my hello world", 0, false)
 
 	if err != nil {
 		t.Errorf("Mqtt publish fail %s", err)

@@ -91,7 +91,7 @@ func main() {
 	for {
 		temperature := rand.Intn(60)
 		msg := "The temperature is " + fmt.Sprintf("%d", temperature)
-		resp, err := mc.Publish(topic, msg, byte(qos))
+		resp, err := mc.Publish(topic, msg, byte(qos), false)
 
 		if err != nil || !resp {
 			log.Print("Error publishing:", err)
